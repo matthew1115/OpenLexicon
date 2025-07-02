@@ -1,0 +1,24 @@
+{
+  "name": "openlexicon",
+  "version": "0.1.0",
+  "description": "A open tool for memorizing new words, powered by ai, inspired by Cling.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ai",
+    "memorize",
+    "wordbank"
+  ],
+  "author": "matthew1115",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^37.1.0"
+  },
+  "dependencies": {
+    "mdui": "^2.1.4"
+  }
+}
