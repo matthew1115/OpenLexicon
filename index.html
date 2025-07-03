@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpenLexicon</title>
     <meta name="theme-color" content="#6750A4">
-    
+
     <!-- Material Design 3 Web Components -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
     <link rel="stylesheet" href="global.css">
 </head>
+
 <body>
     <div class="main-container">
         <!-- Welcome Screen -->
@@ -20,31 +22,26 @@
                 <h1 class="app-title">OpenLexicon</h1>
                 <p class="app-subtitle">Your personal vocabulary builder</p>
             </div>
-            
+
             <div class="button-container">
-                <button 
-                    id="resumeBtn" 
-                    class="md3-button filled"
-                    disabled>
+                <button id="resumeBtn" class="md3-button filled" disabled>
                     <span class="material-symbols-outlined">history</span>
                     Resume Last Session
                 </button>
-                
-                <button 
-                    id="openWordbankBtn" 
-                    class="md3-button outlined">
+
+                <button id="openWordbankBtn" class="md3-button outlined">
                     <span class="material-symbols-outlined">folder_open</span>
                     Open Wordbank
                 </button>
             </div>
-            
+
             <div class="progress-container">
                 <div id="loadingProgress" class="md3-progress">
                     <div class="md3-progress-bar"></div>
                 </div>
             </div>
         </div>
-        
+
         <!-- File Info Screen -->
         <div id="fileInfoScreen" class="file-info-card hidden">
             <div class="file-info-section">
@@ -54,7 +51,7 @@
                     <div id="filePath" class="file-path"></div>
                 </div>
             </div>
-            
+
             <div class="button-row">
                 <button class="md3-button filled">
                     <span class="material-symbols-outlined">play_arrow</span>
@@ -66,99 +63,260 @@
                 </button>
             </div>
         </div>
+
+        <!-- Settings Screen -->
+        <div id="settingsScreen" class="settings-card hidden">
+            <div class="settings-header">
+                <button id="backFromSettings" class="md3-button text">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                    Back
+                </button>
+            </div>
+
+            <h2 class="section-title">Settings</h2>
+
+            <div class="settings-content">
+                <div class="settings-section">
+                    <h6 class="settings-section-title">AI Configuration</h6>
+                    <p class="settings-description">Configure your AI API settings for OpenAI or compatible APIs</p>
+
+                    <div class="input-group">
+                        <label for="apiUrl" class="input-label">API URL</label>
+                        <input type="text" id="apiUrl" class="md3-input" placeholder="https://api.openai.com/v1"
+                            value="https://api.openai.com/v1">
+                        <div class="input-helper">Enter the base URL for your AI API endpoint</div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="modelName" class="input-label">Model Name</label>
+                        <input type="text" id="modelName" class="md3-input" placeholder="gpt-3.5-turbo"
+                            value="gpt-3.5-turbo">
+                        <div class="input-helper">Enter the model name (e.g., gpt-3.5-turbo, gpt-4, claude-3-sonnet)
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="apiKey" class="input-label">API Key</label>
+                        <input type="password" id="apiKey" class="md3-input" placeholder="sk-...">
+                        <div class="input-helper">Your API key will be stored securely on your device</div>
+                    </div>
+
+                    <div class="button-row">
+                        <button id="testConnection" class="md3-button outlined">
+                            <span class="material-symbols-outlined">network_check</span>
+                            Test Connection
+                        </button>
+                        <button id="saveSettings" class="md3-button filled">
+                            <span class="material-symbols-outlined">save</span>
+                            Save Settings
+                        </button>
+                    </div>
+
+                    <div id="connectionStatus" class="connection-status hidden">
+                        <div class="status-indicator"></div>
+                        <span class="status-text"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    
+
     <script>
         const { ipcRenderer } = require('electron');
-        
+
         let fileLoader = null;
-        
+        let currentSettings = {};
+
         // DOM elements
         const welcomeScreen = document.getElementById('welcomeScreen');
         const fileInfoScreen = document.getElementById('fileInfoScreen');
+        const settingsScreen = document.getElementById('settingsScreen');
         const openWordbankBtn = document.getElementById('openWordbankBtn');
         const resumeBtn = document.getElementById('resumeBtn');
         const loadingProgress = document.getElementById('loadingProgress');
         const filePath = document.getElementById('filePath');
-        
+
+        // Settings elements
+        const backFromSettings = document.getElementById('backFromSettings');
+        const apiUrlInput = document.getElementById('apiUrl');
+        const modelNameInput = document.getElementById('modelName');
+        const apiKeyInput = document.getElementById('apiKey');
+        const testConnectionBtn = document.getElementById('testConnection');
+        const saveSettingsBtn = document.getElementById('saveSettings');
+        const connectionStatus = document.getElementById('connectionStatus');
+
         // Initialize the app
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('OpenLexicon is ready!');
-            
+
             // Check if there's a previous wordbank
             await checkPreviousWordbank();
-            
+
             // Set up button click handlers
             setupEventHandlers();
+
+            // Load settings
+            loadSettings();
         });
-        
+
         function setupEventHandlers() {
             openWordbankBtn.addEventListener('click', () => {
                 ipcRenderer.send('open-wordbank');
             });
-            
+
             resumeBtn.addEventListener('click', () => {
                 ipcRenderer.send('resume-wordbank');
             });
+
+            backFromSettings.addEventListener('click', () => {
+                showWelcomeScreen();
+            });
+
+            saveSettingsBtn.addEventListener('click', () => {
+                saveSettings();
+            });
+
+            testConnectionBtn.addEventListener('click', () => {
+                testAPIConnection();
+            });
         }
-        
+
         async function checkPreviousWordbank() {
             // Request to check if there's a previous wordbank
             ipcRenderer.send('check-previous-wordbank');
         }
-        
+
+        function loadSettings() {
+            ipcRenderer.send('get-settings');
+        }
+
+        function saveSettings() {
+            const settings = {
+                apiKey: apiKeyInput.value.trim(),
+                apiUrl: apiUrlInput.value.trim() || 'https://api.openai.com/v1',
+                modelName: modelNameInput.value.trim() || 'gpt-3.5-turbo'
+            };
+
+            ipcRenderer.send('save-settings', settings);
+            showConnectionStatus('Settings saved successfully!', 'success');
+        }
+
+        function testAPIConnection() {
+            const apiKey = apiKeyInput.value.trim();
+            const apiUrl = apiUrlInput.value.trim() || 'https://api.openai.com/v1';
+            const modelName = modelNameInput.value.trim() || 'gpt-3.5-turbo';
+
+            if (!apiKey) {
+                showConnectionStatus('Please enter an API key first', 'error');
+                return;
+            }
+
+            showConnectionStatus('Testing connection...', 'loading');
+            testConnectionBtn.disabled = true;
+
+            // Test the actual API connection
+            ipcRenderer.send('test-ai-connection', { apiKey, apiUrl, modelName });
+        }
+
+        function showConnectionStatus(message, type) {
+            const statusIndicator = connectionStatus.querySelector('.status-indicator');
+            const statusText = connectionStatus.querySelector('.status-text');
+
+            statusText.textContent = message;
+            connectionStatus.className = `connection-status ${type}`;
+            connectionStatus.classList.remove('hidden');
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    connectionStatus.classList.add('hidden');
+                }, 3000);
+            }
+        }
+
+        function showSettings() {
+            welcomeScreen.classList.add('hidden');
+            fileInfoScreen.classList.add('hidden');
+            settingsScreen.classList.remove('hidden');
+        }
+
         function showLoading() {
             loadingProgress.classList.add('visible');
             openWordbankBtn.disabled = true;
             resumeBtn.disabled = true;
         }
-        
+
         function hideLoading() {
             loadingProgress.classList.remove('visible');
             openWordbankBtn.disabled = false;
         }
-        
+
         function showFileInfo(filePath) {
             document.getElementById('filePath').textContent = filePath;
             welcomeScreen.classList.add('hidden');
             fileInfoScreen.classList.remove('hidden');
+            settingsScreen.classList.add('hidden');
         }
-        
+
         function showWelcomeScreen() {
             welcomeScreen.classList.remove('hidden');
             fileInfoScreen.classList.add('hidden');
+            settingsScreen.classList.add('hidden');
             hideLoading();
         }
-        
+
         function openNewWordbank() {
             showWelcomeScreen();
             ipcRenderer.send('open-wordbank');
         }
-        
+
         // IPC Event Handlers
         ipcRenderer.on('wordbank-selected', (event, filePath) => {
             console.log('Wordbank selected:', filePath);
             hideLoading();
             showFileInfo(filePath);
         });
-        
+
         ipcRenderer.on('no-previous-wordbank', () => {
             console.log('No previous wordbank found');
             resumeBtn.disabled = true;
             resumeBtn.innerHTML = '<span class="material-symbols-outlined">block</span>No Previous Session';
         });
-        
+
         ipcRenderer.on('previous-wordbank-available', () => {
             console.log('Previous wordbank is available');
             resumeBtn.disabled = false;
         });
-        
+
         ipcRenderer.on('wordbank-error', (event, error) => {
             console.error('Wordbank error:', error);
             hideLoading();
             // You could add a snackbar or dialog here to show the error
         });
-        
+
+        ipcRenderer.on('show-settings', () => {
+            showSettings();
+        });
+
+        ipcRenderer.on('settings-data', (event, settings) => {
+            currentSettings = settings;
+            apiKeyInput.value = settings.apiKey || '';
+            apiUrlInput.value = settings.apiUrl || 'https://api.openai.com/v1';
+            modelNameInput.value = settings.modelName || 'gpt-3.5-turbo';
+        });
+
+        ipcRenderer.on('settings-saved', () => {
+            showConnectionStatus('Settings saved successfully!', 'success');
+        });
+
+        ipcRenderer.on('ai-connection-result', (event, result) => {
+            testConnectionBtn.disabled = false;
+            if (result.success) {
+                showConnectionStatus('Connection successful!', 'success');
+            } else {
+                showConnectionStatus(result.error || 'Connection failed', 'error');
+            }
+        });
+
         // Legacy file selection handler (keeping for compatibility)
         ipcRenderer.on('file-selected', (event, filePath) => {
             console.log('File selected:', filePath);
@@ -167,4 +325,5 @@
         });
     </script>
 </body>
+
 </html>

@@ -19,6 +19,8 @@
     "electron": "^37.1.0"
   },
   "dependencies": {
-    "mdui": "^2.1.4"
+    "mdui": "^2.1.4",
+    "openai": "^4.28.0",
+    "electron-store": "^8.1.0"
   }
 }
