@@ -19,6 +19,7 @@ class Wordbank {
                 word TEXT NOT NULL UNIQUE,
                 definition TEXT NOT NULL,
                 last_shown_timestamp INTEGER DEFAULT 0,
+                last_correct_timestamp INTEGER DEFAULT 0,
                 shown_times INTEGER DEFAULT 0,
                 difficulty REAL DEFAULT 0.0,
                 example TEXT DEFAULT ''
@@ -27,11 +28,11 @@ class Wordbank {
 
         this.db.exec(createTableQuery);
 
-        // Add difficulty column if it doesn't exist (for existing databases)
+        // Create index on word column if it doesn't exist
         try {
-            this.db.exec('ALTER TABLE words ADD COLUMN difficulty REAL DEFAULT 0.0');
+            this.db.exec('CREATE INDEX IF NOT EXISTS idx_words_word ON words(word)');
         } catch (error) {
-            // Column already exists, ignore error
+            // Index already exists or error, ignore
         }
 
         console.log('Wordbank database initialized');
@@ -117,6 +118,7 @@ class Wordbank {
                         word: result.word,
                         definition: result.definition,
                         lastShownTimestamp: result.last_shown_timestamp,
+                        lastCorrectTimestamp: result.last_correct_timestamp,
                         shownTimes: result.shown_times,
                         difficulty: result.difficulty,
                         example: result.example
@@ -181,6 +183,7 @@ class Wordbank {
                     word: row.word,
                     definition: row.definition,
                     lastShownTimestamp: row.last_shown_timestamp,
+                    lastCorrectTimestamp: row.last_correct_timestamp,
                     shownTimes: row.shown_times,
                     difficulty: row.difficulty,
                     example: row.example
