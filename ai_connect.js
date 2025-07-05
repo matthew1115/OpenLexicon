@@ -4,16 +4,16 @@ class AIConnect {
     constructor() {
         this.client = null;
         this.isInitialized = false;
-        this.modelName = 'gpt-3.5-turbo';
+        this.modelName = 'gpt-4o-mini';
     }
 
     /**
      * Initialize the OpenAI client with API key and base URL
      * @param {string} apiKey - The API key for OpenAI or compatible API
      * @param {string} baseURL - The base URL for the API (default: https://api.openai.com/v1)
-     * @param {string} modelName - The model name to use (default: gpt-3.5-turbo)
+     * @param {string} modelName - The model name to use (default: gpt-4o-mini)
      */
-    initialize(apiKey, baseURL = 'https://api.openai.com/v1', modelName = 'gpt-3.5-turbo') {
+    initialize(apiKey, baseURL = 'https://api.openai.com/v1', modelName = 'gpt-4o-mini') {
         if (!apiKey) {
             throw new Error('API key is required');
         }
@@ -64,16 +64,16 @@ class AIConnect {
         }
 
         try {
-            const prompt = context 
+            const prompt = context
                 ? `Define the word "${word}" as used in this context: "${context}". Provide a clear, concise definition.`
                 : `Define the word "${word}". Provide a clear, concise definition.`;
 
             const response = await this.client.chat.completions.create({
                 model: this.modelName,
                 messages: [
-                    { 
-                        role: 'system', 
-                        content: 'You are a helpful assistant that provides clear, concise definitions of words. Keep definitions brief but informative.' 
+                    {
+                        role: 'system',
+                        content: 'You are a helpful assistant that provides clear, concise definitions of words. Keep definitions brief but informative.'
                     },
                     { role: 'user', content: prompt }
                 ],
@@ -105,9 +105,9 @@ class AIConnect {
             const response = await this.client.chat.completions.create({
                 model: this.modelName,
                 messages: [
-                    { 
-                        role: 'system', 
-                        content: 'You are a helpful assistant that creates example sentences. Provide clear, practical examples that demonstrate word usage.' 
+                    {
+                        role: 'system',
+                        content: 'You are a helpful assistant that creates example sentences. Provide clear, practical examples that demonstrate word usage.'
                     },
                     { role: 'user', content: prompt }
                 ],
@@ -140,9 +140,9 @@ class AIConnect {
             const response = await this.client.chat.completions.create({
                 model: this.modelName,
                 messages: [
-                    { 
-                        role: 'system', 
-                        content: 'You are a helpful assistant that provides synonyms. Return only the synonyms, separated by commas.' 
+                    {
+                        role: 'system',
+                        content: 'You are a helpful assistant that provides synonyms. Return only the synonyms, separated by commas.'
                     },
                     { role: 'user', content: prompt }
                 ],
@@ -186,6 +186,74 @@ class AIConnect {
         } catch (error) {
             console.error('Error analyzing word:', error);
             throw new Error(`Failed to analyze word: ${error.message}`);
+        }
+    }
+
+    /**
+     * Check if a given example sentence is a correct usage of the word
+     * @param {string} word - The word to check
+     * @param {string} example - The example sentence to check
+     * @return {Promise<boolean>} - True if the example is a correct usage, false otherwise
+     */
+    async checkExample(word, example) {
+        if (!this.isInitialized) {
+            throw new Error('AI client not initialized. Call initialize() first.');
+        }
+
+        try {
+            const prompt = `Is the following sentence a correct example of the word "${word}" with no grammar errors? "${example}" Respond with "yes" or "no".`;
+
+            const response = await this.client.chat.completions.create({
+                model: this.modelName,
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are a helpful assistant that verifies example sentences for words.'
+                    },
+                    { role: 'user', content: prompt }
+                ],
+                max_tokens: 10,
+                temperature: 0.0
+            });
+
+            return response.choices[0].message.content.trim().toLowerCase() === 'yes';
+        } catch (error) {
+            console.error('Error checking example:', error);
+            throw new Error(`Failed to check example: ${error.message}`);
+        }
+    }
+
+    /**
+     * Refine an example sentence for clarity and conciseness
+     * @param {string} word - The word to refine the example for
+     * @param {string} example - The example sentence to refine
+     * @returns {Promise<string>} - The refined example sentence
+     */
+    async refineExample(word, example) {
+        if (!this.isInitialized) {
+            throw new Error('AI client not initialized. Call initialize() first.');
+        }
+
+        try {
+            const prompt = `Refine the following example sentence for the word "${word}" to make it grammatically correct and more concise: "${example}". Provide only the refined sentence.`;
+
+            const response = await this.client.chat.completions.create({
+                model: this.modelName,
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are a helpful assistant that refines example sentences for clarity and conciseness.'
+                    },
+                    { role: 'user', content: prompt }
+                ],
+                max_tokens: 100,
+                temperature: 0.5
+            });
+
+            return response.choices[0].message.content.trim();
+        } catch (error) {
+            console.error('Error refining example:', error);
+            throw new Error(`Failed to refine example: ${error.message}`);
         }
     }
 
