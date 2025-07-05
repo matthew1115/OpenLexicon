@@ -1,12 +1,30 @@
 const { dialog, app } = require('electron');
 const fs = require('fs').promises;
 const path = require('path');
+const Database = require('better-sqlite3');
 
 class FileLoader {
     constructor(mainWindow) {
         this.mainWindow = mainWindow;
+        this.db = null;
         this.configDir = path.join(app.getPath('userData'), '.config');
         this.configFile = path.join(this.configDir, '.lexicon_data');
+    }
+
+    // Open sqlite database
+    async openDatabase(dbPath) {
+        try {
+            this.db = new Database(dbPath, { 
+                readonly: false,
+                fileMustExist: false,
+                timeout: 5000,
+                verbose: console.log
+            });
+            console.log('Database opened successfully');
+        } catch (err) {
+            console.error('Error opening database:', err);
+            throw err;
+        }
     }
 
     // Ensure config directory exists
@@ -55,25 +73,32 @@ class FileLoader {
         }
     }
 
-    // Open wordbank file dialog
+    // Open sqlite database file (wordbank) dialog
     async openWordbank() {
         const result = await dialog.showOpenDialog(this.mainWindow, {
             properties: ['openFile'],
             filters: [
-                { name: 'JSON Files', extensions: ['json'] },
+                { name: 'SQLite Database Files', extensions: ['db', 'sqlite', 'sqlite3'] },
                 { name: 'All Files', extensions: ['*'] }
             ],
-            title: 'Select Wordbank File'
+            title: 'Select Wordbank Database'
         });
 
         if (!result.canceled && result.filePaths.length > 0) {
             const filePath = result.filePaths[0];
-            console.log('Selected wordbank:', filePath);
-            
+            console.log('Selected wordbank db:', filePath);
+            // Attempt to open the sqlite database
+            try {
+                await this.openDatabase(filePath);
+                console.log('Wordbank database opened successfully');
+            } catch (err) {
+                console.error('Error opening wordbank db:', err);
+                this.mainWindow.webContents.send('wordbank-error', err.message);
+                return null;
+            }
             // Save this path for future use
             await this.saveWordbankPath(filePath);
-            
-            // Send the file path to the renderer process
+            // Notify renderer
             this.mainWindow.webContents.send('wordbank-selected', filePath);
             return filePath;
         }
@@ -85,6 +110,15 @@ class FileLoader {
         const lastPath = await this.getLastWordbankPath();
         if (lastPath && await this.isLastWordbankValid()) {
             console.log('Resuming with wordbank:', lastPath);
+            // Open the sqlite database
+            try {
+                await this.openDatabase(lastPath);
+                console.log('Wordbank database resumed successfully');
+            } catch (err) {
+                console.error('Error opening wordbank db:', err);
+                this.mainWindow.webContents.send('wordbank-error', err.message);
+                return null;
+            }
             this.mainWindow.webContents.send('wordbank-selected', lastPath);
             return lastPath;
         } else {
