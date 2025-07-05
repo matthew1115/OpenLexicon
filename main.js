@@ -64,7 +64,7 @@ function createWindow() {
     fileLoader = new FileLoader(mainWindow);    // Initialize AI connection with saved settings
     const savedApiKey = store.get('apiKey');
     const savedApiUrl = store.get('apiUrl', 'https://api.openai.com/v1');
-    const savedModelName = store.get('modelName', 'gpt-3.5-turbo');
+    const savedModelName = store.get('modelName', 'gpt-4o-mini');
     
     if (savedApiKey) {
         try {
@@ -132,7 +132,7 @@ function setupIpcHandlers() {
         const settings = {
             apiKey: store.get('apiKey', ''),
             apiUrl: store.get('apiUrl', 'https://api.openai.com/v1'),
-            modelName: store.get('modelName', 'gpt-3.5-turbo')
+            modelName: store.get('modelName', 'gpt-4o-mini')
         };
         event.reply('settings-data', settings);
     });

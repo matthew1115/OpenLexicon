@@ -89,9 +89,9 @@
 
                     <div class="input-group">
                         <label for="modelName" class="input-label">Model Name</label>
-                        <input type="text" id="modelName" class="md3-input" placeholder="gpt-3.5-turbo"
-                            value="gpt-3.5-turbo">
-                        <div class="input-helper">Enter the model name (e.g., gpt-3.5-turbo, gpt-4, claude-3-sonnet)
+                        <input type="text" id="modelName" class="md3-input" placeholder="gpt-4o-mini"
+                            value="gpt-4o-mini">
+                        <div class="input-helper">Enter the model name (e.g., gpt-4o-mini, gpt-4, claude-3-sonnet)
                         </div>
                     </div>
 
@@ -194,7 +194,7 @@
             const settings = {
                 apiKey: apiKeyInput.value.trim(),
                 apiUrl: apiUrlInput.value.trim() || 'https://api.openai.com/v1',
-                modelName: modelNameInput.value.trim() || 'gpt-3.5-turbo'
+                modelName: modelNameInput.value.trim() || 'gpt-4o-mini'
             };
 
             ipcRenderer.send('save-settings', settings);
@@ -204,7 +204,7 @@
         function testAPIConnection() {
             const apiKey = apiKeyInput.value.trim();
             const apiUrl = apiUrlInput.value.trim() || 'https://api.openai.com/v1';
-            const modelName = modelNameInput.value.trim() || 'gpt-3.5-turbo';
+            const modelName = modelNameInput.value.trim() || 'gpt-4o-mini';
 
             if (!apiKey) {
                 showConnectionStatus('Please enter an API key first', 'error');
@@ -301,7 +301,7 @@
             currentSettings = settings;
             apiKeyInput.value = settings.apiKey || '';
             apiUrlInput.value = settings.apiUrl || 'https://api.openai.com/v1';
-            modelNameInput.value = settings.modelName || 'gpt-3.5-turbo';
+            modelNameInput.value = settings.modelName || 'gpt-4o-mini';
         });
 
         ipcRenderer.on('settings-saved', () => {
