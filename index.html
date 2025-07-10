@@ -63,87 +63,20 @@
                 </button>
             </div>
         </div>
-
-        <!-- Settings Screen -->
-        <div id="settingsScreen" class="settings-card hidden">
-            <div class="settings-header">
-                <button id="backFromSettings" class="md3-button text">
-                    <span class="material-symbols-outlined">arrow_back</span>
-                    Back
-                </button>
-            </div>
-
-            <h2 class="section-title">Settings</h2>
-
-            <div class="settings-content">
-                <div class="settings-section">
-                    <h6 class="settings-section-title">AI Configuration</h6>
-                    <p class="settings-description">Configure your AI API settings for OpenAI or compatible APIs</p>
-
-                    <div class="input-group">
-                        <label for="apiUrl" class="input-label">API URL</label>
-                        <input type="text" id="apiUrl" class="md3-input" placeholder="https://api.openai.com/v1"
-                            value="https://api.openai.com/v1">
-                        <div class="input-helper">Enter the base URL for your AI API endpoint</div>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="modelName" class="input-label">Model Name</label>
-                        <input type="text" id="modelName" class="md3-input" placeholder="gpt-4o-mini"
-                            value="gpt-4o-mini">
-                        <div class="input-helper">Enter the model name (e.g., gpt-4o-mini, gpt-4, claude-3-sonnet)
-                        </div>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="apiKey" class="input-label">API Key</label>
-                        <input type="password" id="apiKey" class="md3-input" placeholder="sk-...">
-                        <div class="input-helper">Your API key will be stored securely on your device</div>
-                    </div>
-
-                    <div class="button-row">
-                        <button id="testConnection" class="md3-button outlined">
-                            <span class="material-symbols-outlined">network_check</span>
-                            Test Connection
-                        </button>
-                        <button id="saveSettings" class="md3-button filled">
-                            <span class="material-symbols-outlined">save</span>
-                            Save Settings
-                        </button>
-                    </div>
-
-                    <div id="connectionStatus" class="connection-status hidden">
-                        <div class="status-indicator"></div>
-                        <span class="status-text"></span>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
         const { ipcRenderer } = require('electron');
 
         let fileLoader = null;
-        let currentSettings = {};
 
         // DOM elements
         const welcomeScreen = document.getElementById('welcomeScreen');
         const fileInfoScreen = document.getElementById('fileInfoScreen');
-        const settingsScreen = document.getElementById('settingsScreen');
         const openWordbankBtn = document.getElementById('openWordbankBtn');
         const resumeBtn = document.getElementById('resumeBtn');
         const loadingProgress = document.getElementById('loadingProgress');
         const filePath = document.getElementById('filePath');
-
-        // Settings elements
-        const backFromSettings = document.getElementById('backFromSettings');
-        const apiUrlInput = document.getElementById('apiUrl');
-        const modelNameInput = document.getElementById('modelName');
-        const apiKeyInput = document.getElementById('apiKey');
-        const testConnectionBtn = document.getElementById('testConnection');
-        const saveSettingsBtn = document.getElementById('saveSettings');
-        const connectionStatus = document.getElementById('connectionStatus');
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', async () => {
@@ -154,9 +87,6 @@
 
             // Set up button click handlers
             setupEventHandlers();
-
-            // Load settings
-            loadSettings();
         });
 
         function setupEventHandlers() {
@@ -167,76 +97,11 @@
             resumeBtn.addEventListener('click', () => {
                 ipcRenderer.send('resume-wordbank');
             });
-
-            backFromSettings.addEventListener('click', () => {
-                showWelcomeScreen();
-            });
-
-            saveSettingsBtn.addEventListener('click', () => {
-                saveSettings();
-            });
-
-            testConnectionBtn.addEventListener('click', () => {
-                testAPIConnection();
-            });
         }
 
         async function checkPreviousWordbank() {
             // Request to check if there's a previous wordbank
             ipcRenderer.send('check-previous-wordbank');
-        }
-
-        function loadSettings() {
-            ipcRenderer.send('get-settings');
-        }
-
-        function saveSettings() {
-            const settings = {
-                apiKey: apiKeyInput.value.trim(),
-                apiUrl: apiUrlInput.value.trim() || 'https://api.openai.com/v1',
-                modelName: modelNameInput.value.trim() || 'gpt-4o-mini'
-            };
-
-            ipcRenderer.send('save-settings', settings);
-            showConnectionStatus('Settings saved successfully!', 'success');
-        }
-
-        function testAPIConnection() {
-            const apiKey = apiKeyInput.value.trim();
-            const apiUrl = apiUrlInput.value.trim() || 'https://api.openai.com/v1';
-            const modelName = modelNameInput.value.trim() || 'gpt-4o-mini';
-
-            if (!apiKey) {
-                showConnectionStatus('Please enter an API key first', 'error');
-                return;
-            }
-
-            showConnectionStatus('Testing connection...', 'loading');
-            testConnectionBtn.disabled = true;
-
-            // Test the actual API connection
-            ipcRenderer.send('test-ai-connection', { apiKey, apiUrl, modelName });
-        }
-
-        function showConnectionStatus(message, type) {
-            const statusIndicator = connectionStatus.querySelector('.status-indicator');
-            const statusText = connectionStatus.querySelector('.status-text');
-
-            statusText.textContent = message;
-            connectionStatus.className = `connection-status ${type}`;
-            connectionStatus.classList.remove('hidden');
-
-            if (type === 'success') {
-                setTimeout(() => {
-                    connectionStatus.classList.add('hidden');
-                }, 3000);
-            }
-        }
-
-        function showSettings() {
-            welcomeScreen.classList.add('hidden');
-            fileInfoScreen.classList.add('hidden');
-            settingsScreen.classList.remove('hidden');
         }
 
         function showLoading() {
@@ -254,13 +119,11 @@
             document.getElementById('filePath').textContent = filePath;
             welcomeScreen.classList.add('hidden');
             fileInfoScreen.classList.remove('hidden');
-            settingsScreen.classList.add('hidden');
         }
 
         function showWelcomeScreen() {
             welcomeScreen.classList.remove('hidden');
             fileInfoScreen.classList.add('hidden');
-            settingsScreen.classList.add('hidden');
             hideLoading();
         }
 
@@ -291,30 +154,6 @@
             console.error('Wordbank error:', error);
             hideLoading();
             // You could add a snackbar or dialog here to show the error
-        });
-
-        ipcRenderer.on('show-settings', () => {
-            showSettings();
-        });
-
-        ipcRenderer.on('settings-data', (event, settings) => {
-            currentSettings = settings;
-            apiKeyInput.value = settings.apiKey || '';
-            apiUrlInput.value = settings.apiUrl || 'https://api.openai.com/v1';
-            modelNameInput.value = settings.modelName || 'gpt-4o-mini';
-        });
-
-        ipcRenderer.on('settings-saved', () => {
-            showConnectionStatus('Settings saved successfully!', 'success');
-        });
-
-        ipcRenderer.on('ai-connection-result', (event, result) => {
-            testConnectionBtn.disabled = false;
-            if (result.success) {
-                showConnectionStatus('Connection successful!', 'success');
-            } else {
-                showConnectionStatus(result.error || 'Connection failed', 'error');
-            }
         });
 
         // Legacy file selection handler (keeping for compatibility)

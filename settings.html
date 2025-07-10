@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenLexicon Settings</title>
+    <meta name="theme-color" content="#6750A4">
+    
+    <!-- Material Design 3 Web Components -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+    <link rel="stylesheet" href="global.css">
+    
+    <style>
+        /* Additional styles specific to settings page */
+        .settings-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        
+        .settings-tabs {
+            display: flex;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        }
+        
+        .settings-tab {
+            flex: 1;
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: var(--md-sys-typescale-label-large-font);
+            font-size: var(--md-sys-typescale-label-large-size);
+            font-weight: var(--md-sys-typescale-label-large-weight);
+            color: var(--md-sys-color-on-surface-variant);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .settings-tab.active {
+            color: var(--md-sys-color-primary);
+            border-bottom-color: var(--md-sys-color-primary);
+        }
+        
+        .settings-tab:hover:not(.active) {
+            color: var(--md-sys-color-on-surface);
+            background-color: var(--md-sys-color-surface-variant);
+        }
+        
+        .settings-tab-content {
+            display: none;
+        }
+        
+        .settings-tab-content.active {
+            display: block;
+        }
+        
+        .settings-group {
+            margin-bottom: 32px;
+        }
+        
+        .settings-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        .settings-group-title {
+            font-family: var(--md-sys-typescale-title-large-font);
+            font-size: var(--md-sys-typescale-title-large-size);
+            font-weight: var(--md-sys-typescale-title-large-weight);
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: 8px;
+        }
+        
+        .settings-group-description {
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 14px;
+            line-height: 20px;
+            margin-bottom: 16px;
+        }
+        
+        .input-error {
+            border-color: var(--md-sys-color-error) !important;
+            box-shadow: 0 0 0 2px rgba(186, 26, 26, 0.12) !important;
+        }
+        
+        .advanced-settings {
+            margin-top: 16px;
+        }
+        
+        .advanced-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: var(--md-sys-color-primary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        
+        .advanced-content {
+            display: none;
+            padding: 16px;
+            background-color: var(--md-sys-color-surface-variant);
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+        
+        .advanced-content.visible {
+            display: block;
+        }
+        
+        .import-export-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .import-export-buttons .md3-button {
+            flex: 1;
+        }
+        
+        .keyboard-shortcuts {
+            margin-top: 24px;
+        }
+        
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        }
+        
+        .shortcut-item:last-child {
+            border-bottom: none;
+        }
+        
+        .shortcut-key {
+            font-family: 'Courier New', monospace;
+            background-color: var(--md-sys-color-surface-variant);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .reset-section {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--md-sys-color-outline-variant);
+        }
+        
+        .reset-warning {
+            background-color: var(--md-sys-color-error-container);
+            color: var(--md-sys-color-on-error-container);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .reset-warning .material-symbols-outlined {
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <!-- Settings Header -->
+        <div class="settings-card">
+            <div class="settings-header">
+                <h1 class="section-title">Settings</h1>
+            </div>
+            
+            <!-- Settings Tabs -->
+            <div class="settings-tabs">
+                <button class="settings-tab active" data-tab="ai">AI Configuration</button>
+                <button class="settings-tab" data-tab="general">General</button>
+                <button class="settings-tab" data-tab="advanced">Advanced</button>
+            </div>
+            
+            <!-- AI Configuration Tab -->
+            <div id="ai-tab" class="settings-tab-content active">
+                <div class="settings-group">
+                    <h3 class="settings-group-title">API Configuration</h3>
+                    <p class="settings-group-description">Configure your AI API settings for OpenAI or compatible APIs</p>
+                    
+                    <div class="input-group">
+                        <label for="apiUrl" class="input-label">API URL</label>
+                        <input type="text" id="apiUrl" class="md3-input" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1">
+                        <div class="input-helper">Enter the base URL for your AI API endpoint</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="modelName" class="input-label">Model Name</label>
+                        <input type="text" id="modelName" class="md3-input" placeholder="gpt-4o-mini" value="gpt-4o-mini">
+                        <div class="input-helper">Enter the model name (e.g., gpt-4o-mini, gpt-4, claude-3-sonnet)</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="apiKey" class="input-label">API Key</label>
+                        <input type="password" id="apiKey" class="md3-input" placeholder="sk-...">
+                        <div class="input-helper">Your API key will be stored securely on your device</div>
+                    </div>
+                    
+                    <div class="button-row">
+                        <button id="testConnection" class="md3-button outlined">
+                            <span class="material-symbols-outlined">network_check</span>
+                            Test Connection
+                        </button>
+                        <button id="saveSettings" class="md3-button filled">
+                            <span class="material-symbols-outlined">save</span>
+                            Save Settings
+                        </button>
+                    </div>
+                    
+                    <div id="connectionStatus" class="connection-status hidden">
+                        <div class="status-indicator"></div>
+                        <span class="status-text"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- General Tab -->
+            <div id="general-tab" class="settings-tab-content">
+                <div class="settings-group">
+                    <h3 class="settings-group-title">Application Settings</h3>
+                    <p class="settings-group-description">Configure general application preferences</p>
+                    
+                    <div class="input-group">
+                        <label for="theme" class="input-label">Theme</label>
+                        <select id="theme" class="md3-input">
+                            <option value="auto">Auto (System)</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                        <div class="input-helper">Choose your preferred theme</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="language" class="input-label">Language</label>
+                        <select id="language" class="md3-input">
+                            <option value="en">English</option>
+                            <option value="es">Español</option>
+                            <option value="fr">Français</option>
+                            <option value="de">Deutsch</option>
+                            <option value="zh">中文</option>
+                        </select>
+                        <div class="input-helper">Select your preferred language</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="autoSave" class="input-label">Auto-save Interval</label>
+                        <select id="autoSave" class="md3-input">
+                            <option value="0">Disabled</option>
+                            <option value="30">30 seconds</option>
+                            <option value="60">1 minute</option>
+                            <option value="300">5 minutes</option>
+                            <option value="600">10 minutes</option>
+                        </select>
+                        <div class="input-helper">Automatically save progress at regular intervals</div>
+                    </div>
+                </div>
+                
+                <div class="settings-group">
+                    <h3 class="settings-group-title">Learning Settings</h3>
+                    <p class="settings-group-description">Customize your learning experience</p>
+                    
+                    <div class="input-group">
+                        <label for="difficultyAlgorithm" class="input-label">Difficulty Algorithm</label>
+                        <select id="difficultyAlgorithm" class="md3-input">
+                            <option value="spaced">Spaced Repetition</option>
+                            <option value="frequency">Frequency Based</option>
+                            <option value="random">Random</option>
+                            <option value="sequential">Sequential</option>
+                        </select>
+                        <div class="input-helper">Choose how words are selected for review</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="maxWords" class="input-label">Max Words per Session</label>
+                        <input type="number" id="maxWords" class="md3-input" min="1" max="100" value="20">
+                        <div class="input-helper">Maximum number of words to review in one session</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Advanced Tab -->
+            <div id="advanced-tab" class="settings-tab-content">
+                <div class="settings-group">
+                    <h3 class="settings-group-title">Advanced Options</h3>
+                    <p class="settings-group-description">Advanced settings for power users</p>
+                    
+                    <div class="input-group">
+                        <label for="debugMode" class="input-label">Debug Mode</label>
+                        <select id="debugMode" class="md3-input">
+                            <option value="false">Disabled</option>
+                            <option value="true">Enabled</option>
+                        </select>
+                        <div class="input-helper">Enable debug logging and developer tools</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="cacheSize" class="input-label">Cache Size (MB)</label>
+                        <input type="number" id="cacheSize" class="md3-input" min="10" max="1000" value="100">
+                        <div class="input-helper">Amount of memory to use for caching</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="requestTimeout" class="input-label">Request Timeout (seconds)</label>
+                        <input type="number" id="requestTimeout" class="md3-input" min="5" max="300" value="30">
+                        <div class="input-helper">Timeout for API requests</div>
+                    </div>
+                </div>
+                
+                <div class="settings-group">
+                    <h3 class="settings-group-title">Data Management</h3>
+                    <p class="settings-group-description">Import and export your settings</p>
+                    
+                    <div class="import-export-buttons">
+                        <button id="importSettings" class="md3-button outlined">
+                            <span class="material-symbols-outlined">upload</span>
+                            Import Settings
+                        </button>
+                        <button id="exportSettings" class="md3-button outlined">
+                            <span class="material-symbols-outlined">download</span>
+                            Export Settings
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="settings-group">
+                    <h3 class="settings-group-title">Keyboard Shortcuts</h3>
+                    <div class="keyboard-shortcuts">
+                        <div class="shortcut-item">
+                            <span>Open Settings</span>
+                            <span class="shortcut-key">Ctrl+,</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span>Open Wordbank</span>
+                            <span class="shortcut-key">Ctrl+O</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span>Resume Last Session</span>
+                            <span class="shortcut-key">Ctrl+R</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span>Test Connection</span>
+                            <span class="shortcut-key">Ctrl+T</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span>Save Settings</span>
+                            <span class="shortcut-key">Ctrl+S</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-group reset-section">
+                    <h3 class="settings-group-title">Reset Settings</h3>
+                    <div class="reset-warning">
+                        <span class="material-symbols-outlined">warning</span>
+                        This will reset all settings to their default values. This action cannot be undone.
+                    </div>
+                    <button id="resetSettings" class="md3-button outlined" style="color: var(--md-sys-color-error);">
+                        <span class="material-symbols-outlined">restore</span>
+                        Reset to Defaults
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hidden file input for settings import -->
+    <input type="file" id="importFile" accept=".json" style="display: none;">
+    
+    <script src="settings.js"></script>
+    <script>
+        // Initialize settings manager when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const settingsManager = new SettingsManager();
+            settingsManager.init();
+            
+            // Set up tab switching
+            setupTabSwitching();
+            
+            // Set up additional event handlers
+            setupAdditionalHandlers(settingsManager);
+        });
+        
+        function setupTabSwitching() {
+            const tabs = document.querySelectorAll('.settings-tab');
+            const tabContents = document.querySelectorAll('.settings-tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetTab = tab.dataset.tab;
+                    
+                    // Remove active class from all tabs and contents
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and corresponding content
+                    tab.classList.add('active');
+                    const targetContent = document.getElementById(`${targetTab}-tab`);
+                    if (targetContent) {
+                        targetContent.classList.add('active');
+                    }
+                });
+            });
+        }
+        
+        function setupAdditionalHandlers(settingsManager) {
+            // Import settings handler
+            document.getElementById('importSettings').addEventListener('click', () => {
+                document.getElementById('importFile').click();
+            });
+            
+            document.getElementById('importFile').addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            settingsManager.importSettings(e.target.result);
+                        } catch (error) {
+                            console.error('Error importing settings:', error);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            });
+            
+            // Export settings handler
+            document.getElementById('exportSettings').addEventListener('click', () => {
+                const settingsJson = settingsManager.exportSettings();
+                const blob = new Blob([settingsJson], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'openlexicon-settings.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+            
+            // Reset settings handler
+            document.getElementById('resetSettings').addEventListener('click', () => {
+                if (confirm('Are you sure you want to reset all settings to their default values? This action cannot be undone.')) {
+                    settingsManager.resetToDefaults();
+                }
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (event) => {
+                // Ctrl/Cmd + S to save
+                if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+                    event.preventDefault();
+                    settingsManager.saveSettings();
+                }
+                
+                // Ctrl/Cmd + T to test connection
+                if ((event.ctrlKey || event.metaKey) && event.key === 't') {
+                    event.preventDefault();
+                    settingsManager.testAPIConnection();
+                }
+            });
+        }
+    </script>
+</body>
+</html>

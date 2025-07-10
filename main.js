@@ -12,6 +12,7 @@ const aiConnect = new AIConnect();
 
 // Keep a global reference of the window object
 let mainWindow;
+let settingsWindow;
 let fileLoader;
 
 function createMenu() {
@@ -38,7 +39,8 @@ function createMenu() {
                     label: 'Preferences',
                     accelerator: 'CmdOrCtrl+,',
                     click: () => {
-                        mainWindow.webContents.send('show-settings');
+                        // Open settings in a new window
+                        createSettingsWindow();
                     }
                 }
             ]
@@ -77,6 +79,7 @@ function createWindow() {
 
     // Set up IPC handlers
     setupIpcHandlers();
+    setupSettingsIpcHandlers();
 
     mainWindow.loadFile('index.html');
 
@@ -90,6 +93,39 @@ function createWindow() {
         // Dereference the window object and file loader
         mainWindow = null;
         fileLoader = null;
+    });
+}
+
+function createSettingsWindow() {
+    // Don't create multiple settings windows
+    if (settingsWindow) {
+        settingsWindow.focus();
+        return;
+    }
+
+    settingsWindow = new BrowserWindow({
+        width: 800,
+        height: 700,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false,
+            enableRemoteModule: true
+        },
+        parent: mainWindow,
+        modal: false,
+        title: 'OpenLexicon Settings',
+        resizable: true,
+        minimizable: false,
+        maximizable: false
+    });
+
+    settingsWindow.loadFile('settings.html');
+
+    // Set up IPC handlers for settings window
+    setupSettingsIpcHandlers();
+
+    settingsWindow.on('closed', function () {
+        settingsWindow = null;
     });
 }
 
@@ -127,14 +163,24 @@ function setupIpcHandlers() {
             console.error('Error checking previous wordbank:', error);
             mainWindow.webContents.send('no-previous-wordbank');
         }
-    });    // Settings handlers
+    });
+}
+
+function setupSettingsIpcHandlers() {
+    // Settings handlers
     ipcMain.on('get-settings', (event) => {
         const settings = {
             apiKey: store.get('apiKey', ''),
             apiUrl: store.get('apiUrl', 'https://api.openai.com/v1'),
             modelName: store.get('modelName', 'gpt-4o-mini')
         };
-        event.reply('settings-data', settings);
+        
+        // Send to settings window if it exists, otherwise to main window
+        if (settingsWindow && !settingsWindow.isDestroyed()) {
+            settingsWindow.webContents.send('settings-data', settings);
+        } else {
+            event.reply('settings-data', settings);
+        }
     });
 
     ipcMain.on('save-settings', (event, settings) => {
@@ -151,29 +197,51 @@ function setupIpcHandlers() {
             }
         }
         
-        event.reply('settings-saved');
+        // Send confirmation to settings window if it exists, otherwise to main window
+        if (settingsWindow && !settingsWindow.isDestroyed()) {
+            settingsWindow.webContents.send('settings-saved');
+        } else {
+            event.reply('settings-saved');
+        }
     });
 
     // AI functionality handlers
     ipcMain.on('test-ai-connection', async (event, settings) => {
         try {
             if (!settings.apiKey) {
-                event.reply('ai-connection-result', { success: false, error: 'API key is required' });
+                const result = { success: false, error: 'API key is required' };
+                if (settingsWindow && !settingsWindow.isDestroyed()) {
+                    settingsWindow.webContents.send('ai-connection-result', result);
+                } else {
+                    event.reply('ai-connection-result', result);
+                }
                 return;
             }
 
             aiConnect.initialize(settings.apiKey, settings.apiUrl, settings.modelName);
             const isConnected = await aiConnect.testConnection();
 
-            event.reply('ai-connection-result', {
+            const result = {
                 success: isConnected,
                 error: isConnected ? null : 'Connection failed'
-            });
+            };
+
+            if (settingsWindow && !settingsWindow.isDestroyed()) {
+                settingsWindow.webContents.send('ai-connection-result', result);
+            } else {
+                event.reply('ai-connection-result', result);
+            }
         } catch (error) {
-            event.reply('ai-connection-result', {
+            const result = {
                 success: false,
                 error: error.message
-            });
+            };
+
+            if (settingsWindow && !settingsWindow.isDestroyed()) {
+                settingsWindow.webContents.send('ai-connection-result', result);
+            } else {
+                event.reply('ai-connection-result', result);
+            }
         }
     });
 }

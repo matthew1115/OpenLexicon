@@ -1,14 +1,15 @@
 const { dialog, app } = require('electron');
-const fs = require('fs').promises;
-const path = require('path');
 const Database = require('better-sqlite3');
+const Store = require('electron-store');
 
 class FileLoader {
     constructor(mainWindow) {
         this.mainWindow = mainWindow;
         this.db = null;
-        this.configDir = path.join(app.getPath('userData'), '.config');
-        this.configFile = path.join(this.configDir, '.lexicon_data');
+        this.store = new Store({
+            name: 'lexicon_data',
+            cwd: app.getPath('userData'),
+        });
     }
 
     // Open sqlite database
@@ -27,33 +28,21 @@ class FileLoader {
         }
     }
 
-    // Ensure config directory exists
-    async ensureConfigDir() {
-        try {
-            await fs.mkdir(this.configDir, { recursive: true });
-        } catch (error) {
-            console.error('Error creating config directory:', error);
-        }
-    }
-
-    // Save the wordbank path to config file
+    // Save the wordbank path to electron-store
     async saveWordbankPath(filePath) {
         try {
-            await this.ensureConfigDir();
-            const config = { lastWordbankPath: filePath };
-            await fs.writeFile(this.configFile, JSON.stringify(config, null, 2));
+            this.store.set('lastWordbankPath', filePath);
             console.log('Saved wordbank path:', filePath);
         } catch (error) {
             console.error('Error saving wordbank path:', error);
         }
     }
 
-    // Get the last used wordbank path
+    // Get the last used wordbank path from electron-store
     async getLastWordbankPath() {
         try {
-            const configData = await fs.readFile(this.configFile, 'utf8');
-            const config = JSON.parse(configData);
-            return config.lastWordbankPath || null;
+            const lastPath = this.store.get('lastWordbankPath', null);
+            return lastPath || null;
         } catch (error) {
             console.log('No previous wordbank path found');
             return null;
@@ -64,7 +53,7 @@ class FileLoader {
     async isLastWordbankValid() {
         const lastPath = await this.getLastWordbankPath();
         if (!lastPath) return false;
-        
+        const fs = require('fs').promises;
         try {
             await fs.access(lastPath);
             return true;
