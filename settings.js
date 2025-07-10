@@ -23,10 +23,21 @@ class SettingsManager {
     // Cache DOM elements for better performance
     cacheDOMElements() {
         this.dom = {
-            // Input elements
+            // AI Configuration elements
             apiUrlInput: document.getElementById('apiUrl'),
             modelNameInput: document.getElementById('modelName'),
             apiKeyInput: document.getElementById('apiKey'),
+            
+            // General settings elements
+            themeSelect: document.getElementById('theme'),
+            languageSelect: document.getElementById('language'),
+            difficultyAlgorithmSelect: document.getElementById('difficultyAlgorithm'),
+            maxWordsInput: document.getElementById('maxWords'),
+            
+            // Advanced settings elements
+            debugModeSelect: document.getElementById('debugMode'),
+            cacheSizeInput: document.getElementById('cacheSize'),
+            requestTimeoutInput: document.getElementById('requestTimeout'),
             
             // Button elements
             testConnectionBtn: document.getElementById('testConnection'),
@@ -111,17 +122,41 @@ class SettingsManager {
     // Get form data as settings object
     getFormData() {
         return {
+            // AI Configuration
             apiKey: this.dom.apiKeyInput.value.trim(),
             apiUrl: this.dom.apiUrlInput.value.trim() || 'https://api.openai.com/v1',
-            modelName: this.dom.modelNameInput.value.trim() || 'gpt-4o-mini'
+            modelName: this.dom.modelNameInput.value.trim() || 'gpt-4o-mini',
+            
+            // General Settings
+            theme: this.dom.themeSelect?.value || 'auto',
+            language: this.dom.languageSelect?.value || 'en',
+            difficultyAlgorithm: this.dom.difficultyAlgorithmSelect?.value || 'spaced',
+            maxWords: parseInt(this.dom.maxWordsInput?.value) || 20,
+            
+            // Advanced Settings
+            debugMode: this.dom.debugModeSelect?.value === 'true',
+            cacheSize: parseInt(this.dom.cacheSizeInput?.value) || 100,
+            requestTimeout: parseInt(this.dom.requestTimeoutInput?.value) || 30
         };
     }
 
     // Populate form with settings data
     populateForm(settings) {
+        // AI Configuration
         this.dom.apiKeyInput.value = settings.apiKey || '';
         this.dom.apiUrlInput.value = settings.apiUrl || 'https://api.openai.com/v1';
         this.dom.modelNameInput.value = settings.modelName || 'gpt-4o-mini';
+        
+        // General Settings
+        if (this.dom.themeSelect) this.dom.themeSelect.value = settings.theme || 'auto';
+        if (this.dom.languageSelect) this.dom.languageSelect.value = settings.language || 'en';
+        if (this.dom.difficultyAlgorithmSelect) this.dom.difficultyAlgorithmSelect.value = settings.difficultyAlgorithm || 'spaced';
+        if (this.dom.maxWordsInput) this.dom.maxWordsInput.value = settings.maxWords || 20;
+        
+        // Advanced Settings
+        if (this.dom.debugModeSelect) this.dom.debugModeSelect.value = settings.debugMode ? 'true' : 'false';
+        if (this.dom.cacheSizeInput) this.dom.cacheSizeInput.value = settings.cacheSize || 100;
+        if (this.dom.requestTimeoutInput) this.dom.requestTimeoutInput.value = settings.requestTimeout || 30;
     }
 
     // Validate settings object

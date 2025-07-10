@@ -202,16 +202,17 @@ body {
 }
 
 .md3-button:disabled {
-    background-color: var(--md-sys-color-on-surface);
-    color: var(--md-sys-color-surface);
-    opacity: 0.38;
+    background-color: var(--md-sys-color-surface-variant);
+    color: var(--md-sys-color-on-surface-variant);
+    opacity: 0.6;
     cursor: not-allowed;
 }
 
 .md3-button.outlined:disabled {
     background-color: transparent;
-    border-color: var(--md-sys-color-on-surface);
-    opacity: 0.12;
+    border-color: var(--md-sys-color-outline-variant);
+    color: var(--md-sys-color-on-surface-variant);
+    opacity: 0.6;
 }
 
 .material-symbols-outlined {

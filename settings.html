@@ -164,6 +164,21 @@
             margin-right: 8px;
             vertical-align: middle;
         }
+        
+        .global-save-section {
+            position: sticky;
+            bottom: 0;
+            background-color: var(--md-sys-color-surface);
+            padding: 16px 0;
+            margin-top: 24px;
+            border-top: 1px solid var(--md-sys-color-outline-variant);
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .global-save-section .md3-button {
+            min-width: 120px;
+        }
     </style>
 </head>
 <body>
@@ -210,10 +225,6 @@
                             <span class="material-symbols-outlined">network_check</span>
                             Test Connection
                         </button>
-                        <button id="saveSettings" class="md3-button filled">
-                            <span class="material-symbols-outlined">save</span>
-                            Save Settings
-                        </button>
                     </div>
                     
                     <div id="connectionStatus" class="connection-status hidden">
@@ -243,24 +254,9 @@
                         <label for="language" class="input-label">Language</label>
                         <select id="language" class="md3-input">
                             <option value="en">English</option>
-                            <option value="es">Español</option>
-                            <option value="fr">Français</option>
-                            <option value="de">Deutsch</option>
                             <option value="zh">中文</option>
                         </select>
                         <div class="input-helper">Select your preferred language</div>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label for="autoSave" class="input-label">Auto-save Interval</label>
-                        <select id="autoSave" class="md3-input">
-                            <option value="0">Disabled</option>
-                            <option value="30">30 seconds</option>
-                            <option value="60">1 minute</option>
-                            <option value="300">5 minutes</option>
-                            <option value="600">10 minutes</option>
-                        </select>
-                        <div class="input-helper">Automatically save progress at regular intervals</div>
                     </div>
                 </div>
                 
@@ -368,6 +364,14 @@
                         Reset to Defaults
                     </button>
                 </div>
+            </div>
+            
+            <!-- Global Save Button Section -->
+            <div class="global-save-section">
+                <button id="saveSettings" class="md3-button filled">
+                    <span class="material-symbols-outlined">save</span>
+                    Save Settings
+                </button>
             </div>
         </div>
     </div>

@@ -116,7 +116,8 @@ function createSettingsWindow() {
         title: 'OpenLexicon Settings',
         resizable: true,
         minimizable: false,
-        maximizable: false
+        maximizable: false,
+        autoHideMenuBar: true
     });
 
     settingsWindow.loadFile('settings.html');
@@ -170,9 +171,21 @@ function setupSettingsIpcHandlers() {
     // Settings handlers
     ipcMain.on('get-settings', (event) => {
         const settings = {
+            // AI Configuration
             apiKey: store.get('apiKey', ''),
             apiUrl: store.get('apiUrl', 'https://api.openai.com/v1'),
-            modelName: store.get('modelName', 'gpt-4o-mini')
+            modelName: store.get('modelName', 'gpt-4o-mini'),
+            
+            // General Settings
+            theme: store.get('theme', 'auto'),
+            language: store.get('language', 'en'),
+            difficultyAlgorithm: store.get('difficultyAlgorithm', 'spaced'),
+            maxWords: store.get('maxWords', 20),
+            
+            // Advanced Settings
+            debugMode: store.get('debugMode', false),
+            cacheSize: store.get('cacheSize', 100),
+            requestTimeout: store.get('requestTimeout', 30)
         };
         
         // Send to settings window if it exists, otherwise to main window
@@ -184,9 +197,21 @@ function setupSettingsIpcHandlers() {
     });
 
     ipcMain.on('save-settings', (event, settings) => {
+        // Save AI Configuration
         store.set('apiKey', settings.apiKey);
         store.set('apiUrl', settings.apiUrl);
         store.set('modelName', settings.modelName);
+        
+        // Save General Settings
+        store.set('theme', settings.theme);
+        store.set('language', settings.language);
+        store.set('difficultyAlgorithm', settings.difficultyAlgorithm);
+        store.set('maxWords', settings.maxWords);
+        
+        // Save Advanced Settings
+        store.set('debugMode', settings.debugMode);
+        store.set('cacheSize', settings.cacheSize);
+        store.set('requestTimeout', settings.requestTimeout);
         
         // Reinitialize AI connection with new settings
         if (settings.apiKey) {
