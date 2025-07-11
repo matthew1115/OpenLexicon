@@ -1,8 +1,8 @@
 const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
-const FileLoader = require('./load_file');
+const FileLoader = require('./src/load_file');
 const Store = require('electron-store');
-const AIConnect = require('./ai_connect');
+const AIConnect = require('./src/ai_connect');
 
 // Initialize settings store
 const store = new Store();
@@ -81,7 +81,7 @@ function createWindow() {
     setupIpcHandlers();
     setupSettingsIpcHandlers();
 
-    mainWindow.loadFile('index.html');
+    mainWindow.loadFile('page/index.html');
 
     // Create the application menu
     createMenu();
@@ -120,7 +120,7 @@ function createSettingsWindow() {
         autoHideMenuBar: true
     });
 
-    settingsWindow.loadFile('settings.html');
+    settingsWindow.loadFile('page/settings.html');
 
     // Set up IPC handlers for settings window
     setupSettingsIpcHandlers();

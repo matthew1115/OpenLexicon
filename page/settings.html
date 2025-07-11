@@ -9,7 +9,10 @@
     <!-- Material Design 3 Web Components -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
-    <link rel="stylesheet" href="global.css">
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mdui@2.0.3/mdui.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/mdui@2.0.3/mdui.min.js"></script>
+    <link rel="stylesheet" href="../css/output.css">
     
     <style>
         /* Additional styles specific to settings page */
@@ -181,7 +184,7 @@
         }
     </style>
 </head>
-<body>
+<body class="mdui-theme-primary-blue">
     <div class="settings-container">
         <!-- Settings Header -->
         <div class="settings-card">
@@ -221,10 +224,10 @@
                     </div>
                     
                     <div class="button-row">
-                        <button id="testConnection" class="md3-button outlined">
-                            <span class="material-symbols-outlined">network_check</span>
-                            Test Connection
-                        </button>
+<button id="testConnection" class="mdui-button mdui-ripple px-4 py-2 text-blue-500 border border-blue-500 rounded shadow">
+    <span class="material-symbols-outlined">network_check</span>
+    Test Connection
+</button>
                     </div>
                     
                     <div id="connectionStatus" class="connection-status hidden">
@@ -316,14 +319,14 @@
                     <p class="settings-group-description">Import and export your settings</p>
                     
                     <div class="import-export-buttons">
-                        <button id="importSettings" class="md3-button outlined">
-                            <span class="material-symbols-outlined">upload</span>
-                            Import Settings
-                        </button>
-                        <button id="exportSettings" class="md3-button outlined">
-                            <span class="material-symbols-outlined">download</span>
-                            Export Settings
-                        </button>
+<button id="importSettings" class="mdui-button mdui-ripple px-4 py-2 text-blue-500 border border-blue-500 rounded shadow">
+    <span class="material-symbols-outlined">upload</span>
+    Import Settings
+</button>
+<button id="exportSettings" class="mdui-button mdui-ripple px-4 py-2 text-blue-500 border border-blue-500 rounded shadow">
+    <span class="material-symbols-outlined">download</span>
+    Export Settings
+</button>
                     </div>
                 </div>
                 
@@ -359,19 +362,19 @@
                         <span class="material-symbols-outlined">warning</span>
                         This will reset all settings to their default values. This action cannot be undone.
                     </div>
-                    <button id="resetSettings" class="md3-button outlined" style="color: var(--md-sys-color-error);">
-                        <span class="material-symbols-outlined">restore</span>
-                        Reset to Defaults
-                    </button>
+<button id="resetSettings" class="mdui-button mdui-ripple px-4 py-2 text-red-500 border border-red-500 rounded shadow" style="color: var(--md-sys-color-error);">
+    <span class="material-symbols-outlined">restore</span>
+    Reset to Defaults
+</button>
                 </div>
             </div>
             
             <!-- Global Save Button Section -->
             <div class="global-save-section">
-                <button id="saveSettings" class="md3-button filled">
-                    <span class="material-symbols-outlined">save</span>
-                    Save Settings
-                </button>
+<button id="saveSettings" class="mdui-button mdui-color-blue-500 mdui-ripple px-4 py-2 text-white rounded shadow">
+    <span class="material-symbols-outlined">save</span>
+    Save Settings
+</button>
             </div>
         </div>
     </div>
@@ -379,7 +382,7 @@
     <!-- Hidden file input for settings import -->
     <input type="file" id="importFile" accept=".json" style="display: none;">
     
-    <script src="settings.js"></script>
+    <script src="../src/settings.js"></script>
     <script>
         // Initialize settings manager when page loads
         document.addEventListener('DOMContentLoaded', () => {
