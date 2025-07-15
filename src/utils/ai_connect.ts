@@ -1,6 +1,18 @@
-const OpenAI = require('openai');
+import OpenAI from 'openai';
+
+interface WordAnalysis {
+    word: string;
+    definition: string;
+    examples: string[];
+    synonyms: string[];
+    context: string;
+}
 
 class AIConnect {
+    private client: OpenAI | null;
+    private isInitialized: boolean;
+    private modelName: string;
+
     constructor() {
         this.client = null;
         this.isInitialized = false;
@@ -9,11 +21,11 @@ class AIConnect {
 
     /**
      * Initialize the OpenAI client with API key and base URL
-     * @param {string} apiKey - The API key for OpenAI or compatible API
-     * @param {string} baseURL - The base URL for the API (default: https://api.openai.com/v1)
-     * @param {string} modelName - The model name to use (default: gpt-4o-mini)
+     * @param apiKey - The API key for OpenAI or compatible API
+     * @param baseURL - The base URL for the API (default: https://api.openai.com/v1)
+     * @param modelName - The model name to use (default: gpt-4o-mini)
      */
-    initialize(apiKey, baseURL = 'https://api.openai.com/v1', modelName = 'gpt-4o-mini') {
+    initialize(apiKey: string, baseURL: string = 'https://api.openai.com/v1', modelName: string = 'gpt-4o-mini'): void {
         if (!apiKey) {
             throw new Error('API key is required');
         }
@@ -29,15 +41,15 @@ class AIConnect {
 
     /**
      * Test the API connection
-     * @returns {Promise<boolean>} - True if connection is successful
+     * @returns True if connection is successful
      */
-    async testConnection() {
+    async testConnection(): Promise<boolean> {
         if (!this.isInitialized) {
             throw new Error('AI client not initialized. Call initialize() first.');
         }
 
         try {
-            const response = await this.client.chat.completions.create({
+            const response = await this.client!.chat.completions.create({
                 model: this.modelName,
                 messages: [
                     { role: 'user', content: 'Hello' }
@@ -54,11 +66,11 @@ class AIConnect {
 
     /**
      * Generate a definition for a word
-     * @param {string} word - The word to define
-     * @param {string} context - Optional context where the word was found
-     * @returns {Promise<string>} - The definition of the word
+     * @param word - The word to define
+     * @param context - Optional context where the word was found
+     * @returns The definition of the word
      */
-    async generateDefinition(word, context = '') {
+    async generateDefinition(word: string, context: string = ''): Promise<string> {
         if (!this.isInitialized) {
             throw new Error('AI client not initialized. Call initialize() first.');
         }
@@ -68,7 +80,7 @@ class AIConnect {
                 ? `Define the word "${word}" as used in this context: "${context}". Provide a clear, concise definition.`
                 : `Define the word "${word}". Provide a clear, concise definition.`;
 
-            const response = await this.client.chat.completions.create({
+            const response = await this.client!.chat.completions.create({
                 model: this.modelName,
                 messages: [
                     {
@@ -81,20 +93,20 @@ class AIConnect {
                 temperature: 0.3
             });
 
-            return response.choices[0].message.content.trim();
+            return response.choices[0].message.content?.trim() || '';
         } catch (error) {
             console.error('Error generating definition:', error);
-            throw new Error(`Failed to generate definition: ${error.message}`);
+            throw new Error(`Failed to generate definition: ${(error as Error).message}`);
         }
     }
 
     /**
      * Generate example sentences for a word
-     * @param {string} word - The word to create examples for
-     * @param {number} count - Number of examples to generate (default: 3)
-     * @returns {Promise<string[]>} - Array of example sentences
+     * @param word - The word to create examples for
+     * @param count - Number of examples to generate (default: 3)
+     * @returns Array of example sentences
      */
-    async generateExamples(word, count = 3) {
+    async generateExamples(word: string, count: number = 3): Promise<string[]> {
         if (!this.isInitialized) {
             throw new Error('AI client not initialized. Call initialize() first.');
         }
@@ -102,7 +114,7 @@ class AIConnect {
         try {
             const prompt = `Create ${count} example sentences using the word "${word}". Each sentence should demonstrate different uses or meanings of the word. Return only the sentences, one per line.`;
 
-            const response = await this.client.chat.completions.create({
+            const response = await this.client!.chat.completions.create({
                 model: this.modelName,
                 messages: [
                     {
@@ -115,21 +127,21 @@ class AIConnect {
                 temperature: 0.5
             });
 
-            const examples = response.choices[0].message.content.trim().split('\n');
-            return examples.filter(example => example.trim().length > 0);
+            const examples = response.choices[0].message.content?.trim().split('\n') || [];
+            return examples.filter((example: string) => example.trim().length > 0);
         } catch (error) {
             console.error('Error generating examples:', error);
-            throw new Error(`Failed to generate examples: ${error.message}`);
+            throw new Error(`Failed to generate examples: ${(error as Error).message}`);
         }
     }
 
     /**
      * Generate synonyms for a word
-     * @param {string} word - The word to find synonyms for
-     * @param {number} count - Number of synonyms to generate (default: 5)
-     * @returns {Promise<string[]>} - Array of synonyms
+     * @param word - The word to find synonyms for
+     * @param count - Number of synonyms to generate (default: 5)
+     * @returns Array of synonyms
      */
-    async generateSynonyms(word, count = 5) {
+    async generateSynonyms(word: string, count: number = 5): Promise<string[]> {
         if (!this.isInitialized) {
             throw new Error('AI client not initialized. Call initialize() first.');
         }
@@ -137,7 +149,7 @@ class AIConnect {
         try {
             const prompt = `Provide ${count} synonyms for the word "${word}". Return only the synonyms, separated by commas.`;
 
-            const response = await this.client.chat.completions.create({
+            const response = await this.client!.chat.completions.create({
                 model: this.modelName,
                 messages: [
                     {
@@ -146,25 +158,25 @@ class AIConnect {
                     },
                     { role: 'user', content: prompt }
                 ],
-                max_tokens: 100,
+                max_tokens: 50,
                 temperature: 0.3
             });
 
-            const synonyms = response.choices[0].message.content.trim().split(',');
-            return synonyms.map(synonym => synonym.trim()).filter(synonym => synonym.length > 0);
+            const synonyms = response.choices[0].message.content?.trim().split(',') || [];
+            return synonyms.map((synonym: string) => synonym.trim()).filter((synonym: string) => synonym.length > 0);
         } catch (error) {
             console.error('Error generating synonyms:', error);
-            throw new Error(`Failed to generate synonyms: ${error.message}`);
+            throw new Error(`Failed to generate synonyms: ${(error as Error).message}`);
         }
     }
 
     /**
      * Generate a comprehensive word analysis including definition, examples, and synonyms
-     * @param {string} word - The word to analyze
-     * @param {string} context - Optional context where the word was found
-     * @returns {Promise<Object>} - Object containing definition, examples, and synonyms
+     * @param word - The word to analyze
+     * @param context - Optional context where the word was found
+     * @returns Object containing definition, examples, and synonyms
      */
-    async analyzeWord(word, context = '') {
+    async analyzeWord(word: string, context: string = ''): Promise<WordAnalysis> {
         if (!this.isInitialized) {
             throw new Error('AI client not initialized. Call initialize() first.');
         }
@@ -185,17 +197,17 @@ class AIConnect {
             };
         } catch (error) {
             console.error('Error analyzing word:', error);
-            throw new Error(`Failed to analyze word: ${error.message}`);
+            throw new Error(`Failed to analyze word: ${(error as Error).message}`);
         }
     }
 
     /**
      * Check if a given example sentence is a correct usage of the word
-     * @param {string} word - The word to check
-     * @param {string} example - The example sentence to check
-     * @return {Promise<boolean>} - True if the example is a correct usage, false otherwise
+     * @param word - The word to check
+     * @param example - The example sentence to check
+     * @returns True if the example is a correct usage, false otherwise
      */
-    async checkExample(word, example) {
+    async checkExample(word: string, example: string): Promise<boolean> {
         if (!this.isInitialized) {
             throw new Error('AI client not initialized. Call initialize() first.');
         }
@@ -203,7 +215,7 @@ class AIConnect {
         try {
             const prompt = `Is the following sentence a correct example of the word "${word}" with no grammar errors? "${example}" Respond with "yes" or "no".`;
 
-            const response = await this.client.chat.completions.create({
+            const response = await this.client!.chat.completions.create({
                 model: this.modelName,
                 messages: [
                     {
@@ -216,20 +228,20 @@ class AIConnect {
                 temperature: 0.0
             });
 
-            return response.choices[0].message.content.trim().toLowerCase() === 'yes';
+            return response.choices[0].message.content?.trim().toLowerCase() === 'yes';
         } catch (error) {
             console.error('Error checking example:', error);
-            throw new Error(`Failed to check example: ${error.message}`);
+            throw new Error(`Failed to check example: ${(error as Error).message}`);
         }
     }
 
     /**
      * Refine an example sentence for clarity and conciseness
-     * @param {string} word - The word to refine the example for
-     * @param {string} example - The example sentence to refine
-     * @returns {Promise<string>} - The refined example sentence
+     * @param word - The word to refine the example for
+     * @param example - The example sentence to refine
+     * @returns The refined example sentence
      */
-    async refineExample(word, example) {
+    async refineExample(word: string, example: string): Promise<string> {
         if (!this.isInitialized) {
             throw new Error('AI client not initialized. Call initialize() first.');
         }
@@ -237,7 +249,7 @@ class AIConnect {
         try {
             const prompt = `Refine the following example sentence for the word "${word}" to make it grammatically correct and more concise: "${example}". Provide only the refined sentence.`;
 
-            const response = await this.client.chat.completions.create({
+            const response = await this.client!.chat.completions.create({
                 model: this.modelName,
                 messages: [
                     {
@@ -250,26 +262,26 @@ class AIConnect {
                 temperature: 0.5
             });
 
-            return response.choices[0].message.content.trim();
+            return response.choices[0].message.content?.trim() || '';
         } catch (error) {
             console.error('Error refining example:', error);
-            throw new Error(`Failed to refine example: ${error.message}`);
+            throw new Error(`Failed to refine example: ${(error as Error).message}`);
         }
     }
 
     /**
      * Get the current model name
-     * @returns {string} - The current model name
+     * @returns The current model name
      */
-    getCurrentModel() {
+    getCurrentModel(): string {
         return this.modelName;
     }
 
     /**
      * Check if the AI client is initialized
-     * @returns {boolean} - True if initialized
+     * @returns True if initialized
      */
-    isReady() {
+    isReady(): boolean {
         return this.isInitialized;
     }
 }

@@ -1,14 +1,49 @@
-const { ipcRenderer } = require('electron');
+import { ipcRenderer } from 'electron';
+
+interface Settings {
+    apiKey: string;
+    apiUrl: string;
+    modelName: string;
+    theme?: string;
+    language?: string;
+    difficultyAlgorithm?: string;
+    maxWords?: number;
+    debugMode?: boolean;
+    cacheSize?: number;
+    requestTimeout?: number;
+}
+
+interface DOMElements {
+    apiUrlInput: HTMLInputElement;
+    modelNameInput: HTMLInputElement;
+    apiKeyInput: HTMLInputElement;
+    themeSelect?: HTMLSelectElement;
+    languageSelect?: HTMLSelectElement;
+    difficultyAlgorithmSelect?: HTMLSelectElement;
+    maxWordsInput?: HTMLInputElement;
+    debugModeSelect?: HTMLSelectElement;
+    cacheSizeInput?: HTMLInputElement;
+    requestTimeoutInput?: HTMLInputElement;
+    testConnectionBtn: HTMLButtonElement;
+    saveSettingsBtn: HTMLButtonElement;
+    connectionStatus: HTMLElement;
+    statusIndicator?: HTMLElement;
+    statusText?: HTMLElement;
+}
 
 class SettingsManager {
+    private currentSettings: Settings;
+    private dom: DOMElements;
+    private isInitialized: boolean;
+
     constructor() {
-        this.currentSettings = {};
-        this.dom = {};
+        this.currentSettings = {} as Settings;
+        this.dom = {} as DOMElements;
         this.isInitialized = false;
     }
 
     // Initialize the settings manager
-    init() {
+    init(): void {
         if (this.isInitialized) return;
         
         this.cacheDOMElements();
@@ -21,37 +56,37 @@ class SettingsManager {
     }
 
     // Cache DOM elements for better performance
-    cacheDOMElements() {
+    cacheDOMElements(): void {
         this.dom = {
             // AI Configuration elements
-            apiUrlInput: document.getElementById('apiUrl'),
-            modelNameInput: document.getElementById('modelName'),
-            apiKeyInput: document.getElementById('apiKey'),
+            apiUrlInput: document.getElementById('apiUrl') as HTMLInputElement,
+            modelNameInput: document.getElementById('modelName') as HTMLInputElement,
+            apiKeyInput: document.getElementById('apiKey') as HTMLInputElement,
             
             // General settings elements
-            themeSelect: document.getElementById('theme'),
-            languageSelect: document.getElementById('language'),
-            difficultyAlgorithmSelect: document.getElementById('difficultyAlgorithm'),
-            maxWordsInput: document.getElementById('maxWords'),
+            themeSelect: document.getElementById('theme') as HTMLSelectElement,
+            languageSelect: document.getElementById('language') as HTMLSelectElement,
+            difficultyAlgorithmSelect: document.getElementById('difficultyAlgorithm') as HTMLSelectElement,
+            maxWordsInput: document.getElementById('maxWords') as HTMLInputElement,
             
             // Advanced settings elements
-            debugModeSelect: document.getElementById('debugMode'),
-            cacheSizeInput: document.getElementById('cacheSize'),
-            requestTimeoutInput: document.getElementById('requestTimeout'),
+            debugModeSelect: document.getElementById('debugMode') as HTMLSelectElement,
+            cacheSizeInput: document.getElementById('cacheSize') as HTMLInputElement,
+            requestTimeoutInput: document.getElementById('requestTimeout') as HTMLInputElement,
             
             // Button elements
-            testConnectionBtn: document.getElementById('testConnection'),
-            saveSettingsBtn: document.getElementById('saveSettings'),
+            testConnectionBtn: document.getElementById('testConnection') as HTMLButtonElement,
+            saveSettingsBtn: document.getElementById('saveSettings') as HTMLButtonElement,
             
             // Status elements
-            connectionStatus: document.getElementById('connectionStatus'),
-            statusIndicator: document.querySelector('.status-indicator'),
-            statusText: document.querySelector('.status-text')
+            connectionStatus: document.getElementById('connectionStatus') as HTMLElement,
+            statusIndicator: document.querySelector('.status-indicator') as HTMLElement,
+            statusText: document.querySelector('.status-text') as HTMLElement
         };
     }
 
     // Set up event handlers
-    setupEventHandlers() {
+    setupEventHandlers(): void {
         // Save settings button handler
         this.dom.saveSettingsBtn.addEventListener('click', () => {
             this.saveSettings();
@@ -67,14 +102,14 @@ class SettingsManager {
         inputs.forEach(input => {
             input.addEventListener('input', this.debounce(() => {
                 this.validateInputs();
-            }, 300));
+            }, 300) as EventListener);
         });
     }
 
     // Set up IPC handlers for communication with main process
-    setupIPCHandlers() {
+    setupIPCHandlers(): void {
         // Handle settings data from main process
-        ipcRenderer.on('settings-data', (event, settings) => {
+        ipcRenderer.on('settings-data', (event, settings: Settings) => {
             this.currentSettings = settings;
             this.populateForm(settings);
         });
@@ -85,7 +120,7 @@ class SettingsManager {
         });
 
         // Handle AI connection test results
-        ipcRenderer.on('ai-connection-result', (event, result) => {
+        ipcRenderer.on('ai-connection-result', (event, result: { success: boolean; error?: string }) => {
             this.dom.testConnectionBtn.disabled = false;
             if (result.success) {
                 this.showConnectionStatus('Connection successful!', 'success');
@@ -102,12 +137,12 @@ class SettingsManager {
     }
 
     // Load settings from main process
-    loadSettings() {
+    loadSettings(): void {
         ipcRenderer.send('get-settings');
     }
 
     // Save settings to main process
-    saveSettings() {
+    saveSettings(): void {
         const settings = this.getFormData();
         
         if (!this.validateSettings(settings)) {
@@ -120,7 +155,7 @@ class SettingsManager {
     }
 
     // Get form data as settings object
-    getFormData() {
+    getFormData(): Settings {
         return {
             // AI Configuration
             apiKey: this.dom.apiKeyInput.value.trim(),
@@ -141,7 +176,7 @@ class SettingsManager {
     }
 
     // Populate form with settings data
-    populateForm(settings) {
+    populateForm(settings: Settings): void {
         // AI Configuration
         this.dom.apiKeyInput.value = settings.apiKey || '';
         this.dom.apiUrlInput.value = settings.apiUrl || 'https://api.openai.com/v1';
@@ -151,23 +186,23 @@ class SettingsManager {
         if (this.dom.themeSelect) this.dom.themeSelect.value = settings.theme || 'auto';
         if (this.dom.languageSelect) this.dom.languageSelect.value = settings.language || 'en';
         if (this.dom.difficultyAlgorithmSelect) this.dom.difficultyAlgorithmSelect.value = settings.difficultyAlgorithm || 'spaced';
-        if (this.dom.maxWordsInput) this.dom.maxWordsInput.value = settings.maxWords || 20;
+        if (this.dom.maxWordsInput) this.dom.maxWordsInput.value = String(settings.maxWords || 20);
         
         // Advanced Settings
         if (this.dom.debugModeSelect) this.dom.debugModeSelect.value = settings.debugMode ? 'true' : 'false';
-        if (this.dom.cacheSizeInput) this.dom.cacheSizeInput.value = settings.cacheSize || 100;
-        if (this.dom.requestTimeoutInput) this.dom.requestTimeoutInput.value = settings.requestTimeout || 30;
+        if (this.dom.cacheSizeInput) this.dom.cacheSizeInput.value = String(settings.cacheSize || 100);
+        if (this.dom.requestTimeoutInput) this.dom.requestTimeoutInput.value = String(settings.requestTimeout || 30);
     }
 
     // Validate settings object
-    validateSettings(settings) {
-        return settings.apiKey && settings.apiKey.length > 0 &&
+    validateSettings(settings: Settings): boolean {
+        return !!(settings.apiKey && settings.apiKey.length > 0 &&
                settings.apiUrl && settings.apiUrl.length > 0 &&
-               settings.modelName && settings.modelName.length > 0;
+               settings.modelName && settings.modelName.length > 0);
     }
 
     // Validate inputs and update UI accordingly
-    validateInputs() {
+    validateInputs(): void {
         const settings = this.getFormData();
         const isValid = this.validateSettings(settings);
         
@@ -180,7 +215,7 @@ class SettingsManager {
     }
 
     // Update input validation styling
-    updateInputValidation() {
+    updateInputValidation(): void {
         const inputs = [
             { element: this.dom.apiKeyInput, required: true },
             { element: this.dom.apiUrlInput, required: true },
@@ -197,7 +232,7 @@ class SettingsManager {
     }
 
     // Test API connection
-    testAPIConnection() {
+    testAPIConnection(): void {
         const settings = this.getFormData();
 
         if (!settings.apiKey) {
@@ -213,8 +248,8 @@ class SettingsManager {
     }
 
     // Show connection status message
-    showConnectionStatus(message, type) {
-        const statusText = this.dom.connectionStatus.querySelector('.status-text');
+    showConnectionStatus(message: string, type: string): void {
+        const statusText = this.dom.connectionStatus.querySelector('.status-text') as HTMLElement;
         
         statusText.textContent = message;
         this.dom.connectionStatus.className = `connection-status ${type}`;
@@ -229,7 +264,7 @@ class SettingsManager {
     }
 
     // Show settings screen (simplified for dedicated window)
-    show() {
+    show(): void {
         // Focus on first input
         this.dom.apiUrlInput.focus();
         
@@ -238,7 +273,7 @@ class SettingsManager {
     }
 
     // Hide settings screen (simplified for dedicated window)
-    hide() {
+    hide(): void {
         // Clear any status messages
         this.dom.connectionStatus.classList.add('hidden');
         
@@ -247,19 +282,19 @@ class SettingsManager {
     }
 
     // Check if settings are configured
-    isConfigured() {
-        return this.currentSettings.apiKey && 
-               this.currentSettings.apiKey.length > 0;
+    isConfigured(): boolean {
+        return !!(this.currentSettings.apiKey && 
+               this.currentSettings.apiKey.length > 0);
     }
 
     // Get current settings
-    getCurrentSettings() {
+    getCurrentSettings(): Settings {
         return { ...this.currentSettings };
     }
 
     // Reset settings to defaults
-    resetToDefaults() {
-        const defaultSettings = {
+    resetToDefaults(): void {
+        const defaultSettings: Settings = {
             apiKey: '',
             apiUrl: 'https://api.openai.com/v1',
             modelName: 'gpt-4o-mini'
@@ -270,7 +305,7 @@ class SettingsManager {
     }
 
     // Import settings from JSON
-    importSettings(settingsJson) {
+    importSettings(settingsJson: string): void {
         try {
             const settings = JSON.parse(settingsJson);
             this.populateForm(settings);
@@ -282,7 +317,7 @@ class SettingsManager {
     }
 
     // Export settings to JSON
-    exportSettings() {
+    exportSettings(): string {
         const settings = this.getFormData();
         // Don't export API key for security
         const exportSettings = {
@@ -293,9 +328,9 @@ class SettingsManager {
     }
 
     // Utility: Debounce function
-    debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
+    debounce(func: Function, wait: number): Function {
+        let timeout: NodeJS.Timeout;
+        return function executedFunction(...args: any[]) {
             const later = () => {
                 clearTimeout(timeout);
                 func(...args);
@@ -306,7 +341,7 @@ class SettingsManager {
     }
 
     // Cleanup method
-    destroy() {
+    destroy(): void {
         if (this.isInitialized) {
             // Remove event listeners
             this.dom.saveSettingsBtn.removeEventListener('click', this.saveSettings);
@@ -330,4 +365,10 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 
 // Global instance for direct use
+declare global {
+    interface Window {
+        SettingsManager: typeof SettingsManager;
+    }
+}
+
 window.SettingsManager = SettingsManager;

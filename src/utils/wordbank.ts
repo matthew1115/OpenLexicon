@@ -1,7 +1,59 @@
-const Database = require('better-sqlite3');
+import Database from 'better-sqlite3';
+
+interface WordRecord {
+    id: number;
+    word: string;
+    definition: string;
+    last_shown_timestamp: number;
+    last_correct_timestamp: number;
+    shown_times: number;
+    difficulty: number;
+    example: string;
+}
+
+interface WordStats {
+    totalWords: number;
+    neverShown: number;
+    shownWords: number;
+    averageShownTimes: number;
+}
+
+interface WordResult {
+    success: boolean;
+    word?: {
+        id: number;
+        word: string;
+        definition: string;
+        lastShownTimestamp: number;
+        lastCorrectTimestamp: number;
+        shownTimes: number;
+        difficulty: number;
+        example: string;
+    };
+    error?: string;
+}
+
+interface AddWordResult {
+    success: boolean;
+    id?: number;
+    error?: string;
+}
+
+interface SimpleResult {
+    success: boolean;
+    error?: string;
+}
+
+interface AllWordsResult {
+    success: boolean;
+    words?: WordResult['word'][];
+    error?: string;
+}
 
 class Wordbank {
-    constructor(dbPath) {
+    private db: Database.Database;
+
+    constructor(dbPath: string) {
         this.db = new Database(dbPath, {
             readonly: false,
             fileMustExist: false,
@@ -39,14 +91,14 @@ class Wordbank {
     }
 
     // Get wordbank statistics
-    getStats() {
+    getStats(): WordStats {
         const totalWordsQuery = this.db.prepare('SELECT COUNT(*) as total FROM words');
         const neverShownQuery = this.db.prepare('SELECT COUNT(*) as never_shown FROM words WHERE last_shown_timestamp = 0');
         const shownWordsQuery = this.db.prepare('SELECT COUNT(*) as shown FROM words WHERE last_shown_timestamp > 0');
 
-        const totalWords = totalWordsQuery.get().total;
-        const neverShown = neverShownQuery.get().never_shown;
-        const shownWords = shownWordsQuery.get().shown;
+        const totalWords = (totalWordsQuery.get() as { total: number }).total;
+        const neverShown = (neverShownQuery.get() as { never_shown: number }).never_shown;
+        const shownWords = (shownWordsQuery.get() as { shown: number }).shown;
 
         return {
             totalWords,
@@ -57,14 +109,14 @@ class Wordbank {
     }
 
     // Helper method to get average shown times
-    getAverageShownTimes() {
+    getAverageShownTimes(): number {
         const avgQuery = this.db.prepare('SELECT AVG(shown_times) as avg_shown FROM words');
-        const result = avgQuery.get();
+        const result = avgQuery.get() as { avg_shown: number | null };
         return Math.round((result.avg_shown || 0) * 100) / 100; // Round to 2 decimal places
     }
 
     // Add a new word to the wordbank
-    addWord(word, definition, example = '', difficulty = 0.0) {
+    addWord(word: string, definition: string, example: string = '', difficulty: number = 0.0): AddWordResult {
         try {
             const insertQuery = this.db.prepare(`
                 INSERT INTO words (word, definition, example, difficulty) 
@@ -73,18 +125,18 @@ class Wordbank {
 
             const result = insertQuery.run(word.toLowerCase().trim(), definition.trim(), example.trim(), difficulty);
             console.log(`Added word: ${word}`);
-            return { success: true, id: result.lastInsertRowid };
+            return { success: true, id: Number(result.lastInsertRowid) };
         } catch (error) {
-            if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+            if ((error as any).code === 'SQLITE_CONSTRAINT_UNIQUE') {
                 return { success: false, error: 'Word already exists in wordbank' };
             }
             console.error('Error adding word:', error);
-            return { success: false, error: error.message };
+            return { success: false, error: (error as Error).message };
         }
     }
 
     // Remove a word from the wordbank
-    removeWord(word) {
+    removeWord(word: string): SimpleResult {
         try {
             const deleteQuery = this.db.prepare('DELETE FROM words WHERE word = ?');
             const result = deleteQuery.run(word.toLowerCase().trim());
@@ -97,18 +149,18 @@ class Wordbank {
             }
         } catch (error) {
             console.error('Error removing word:', error);
-            return { success: false, error: error.message };
+            return { success: false, error: (error as Error).message };
         }
     }
 
     // Get a specific word from the wordbank
-    getWord(word) {
+    getWord(word: string): WordResult {
         try {
             const selectQuery = this.db.prepare(`
                 SELECT * FROM words WHERE word = ?
             `);
 
-            const result = selectQuery.get(word.toLowerCase().trim());
+            const result = selectQuery.get(word.toLowerCase().trim()) as WordRecord | undefined;
 
             if (result) {
                 return {
@@ -129,12 +181,12 @@ class Wordbank {
             }
         } catch (error) {
             console.error('Error getting word:', error);
-            return { success: false, error: error.message };
+            return { success: false, error: (error as Error).message };
         }
     }
 
     // Auto get next word (placeholder - implementation to be defined later)
-    autoGetNextWord() {
+    autoGetNextWord(): SimpleResult {
         // TODO: Implement logic for automatically selecting the next word
         // This could be based on:
         // - Words never shown (priority)
@@ -147,7 +199,7 @@ class Wordbank {
     }
 
     // Update word statistics when shown
-    markWordAsShown(word) {
+    markWordAsShown(word: string): SimpleResult {
         try {
             const updateQuery = this.db.prepare(`
                 UPDATE words 
@@ -166,15 +218,15 @@ class Wordbank {
             }
         } catch (error) {
             console.error('Error marking word as shown:', error);
-            return { success: false, error: error.message };
+            return { success: false, error: (error as Error).message };
         }
     }
 
     // Get all words (useful for debugging or export)
-    getAllWords() {
+    getAllWords(): AllWordsResult {
         try {
             const selectAllQuery = this.db.prepare('SELECT * FROM words ORDER BY word ASC');
-            const words = selectAllQuery.all();
+            const words = selectAllQuery.all() as WordRecord[];
 
             return {
                 success: true,
@@ -191,12 +243,12 @@ class Wordbank {
             };
         } catch (error) {
             console.error('Error getting all words:', error);
-            return { success: false, error: error.message };
+            return { success: false, error: (error as Error).message };
         }
     }
 
     // Close the database connection
-    close() {
+    close(): void {
         if (this.db) {
             this.db.close();
             console.log('Wordbank database connection closed');

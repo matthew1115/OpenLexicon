@@ -1,9 +1,13 @@
-const { dialog, app } = require('electron');
-const Database = require('better-sqlite3');
-const Store = require('electron-store');
+import { dialog, app, BrowserWindow } from 'electron';
+import Database from 'better-sqlite3';
+import Store from 'electron-store';
 
 class FileLoader {
-    constructor(mainWindow) {
+    private mainWindow: BrowserWindow;
+    private db: Database.Database | null;
+    private store: Store;
+
+    constructor(mainWindow: BrowserWindow) {
         this.mainWindow = mainWindow;
         this.db = null;
         this.store = new Store({
@@ -13,7 +17,7 @@ class FileLoader {
     }
 
     // Open sqlite database
-    async openDatabase(dbPath) {
+    async openDatabase(dbPath: string): Promise<void> {
         try {
             this.db = new Database(dbPath, { 
                 readonly: false,
@@ -29,9 +33,9 @@ class FileLoader {
     }
 
     // Save the wordbank path to electron-store
-    async saveWordbankPath(filePath) {
+    async saveWordbankPath(filePath: string): Promise<void> {
         try {
-            this.store.set('lastWordbankPath', filePath);
+            (this.store as any).set('lastWordbankPath', filePath);
             console.log('Saved wordbank path:', filePath);
         } catch (error) {
             console.error('Error saving wordbank path:', error);
@@ -39,9 +43,9 @@ class FileLoader {
     }
 
     // Get the last used wordbank path from electron-store
-    async getLastWordbankPath() {
+    async getLastWordbankPath(): Promise<string | null> {
         try {
-            const lastPath = this.store.get('lastWordbankPath', null);
+            const lastPath = (this.store as any).get('lastWordbankPath', null);
             return lastPath || null;
         } catch (error) {
             console.log('No previous wordbank path found');
@@ -50,7 +54,7 @@ class FileLoader {
     }
 
     // Check if the last wordbank file still exists
-    async isLastWordbankValid() {
+    async isLastWordbankValid(): Promise<boolean> {
         const lastPath = await this.getLastWordbankPath();
         if (!lastPath) return false;
         const fs = require('fs').promises;
@@ -63,7 +67,7 @@ class FileLoader {
     }
 
     // Open sqlite database file (wordbank) dialog
-    async openWordbank() {
+    async openWordbank(): Promise<string | null> {
         const result = await dialog.showOpenDialog(this.mainWindow, {
             properties: ['openFile'],
             filters: [
@@ -82,7 +86,7 @@ class FileLoader {
                 console.log('Wordbank database opened successfully');
             } catch (err) {
                 console.error('Error opening wordbank db:', err);
-                this.mainWindow.webContents.send('wordbank-error', err.message);
+                this.mainWindow.webContents.send('wordbank-error', (err as Error).message);
                 return null;
             }
             // Save this path for future use
@@ -95,7 +99,7 @@ class FileLoader {
     }
 
     // Resume with last wordbank
-    async resumeLastWordbank() {
+    async resumeLastWordbank(): Promise<string | null> {
         const lastPath = await this.getLastWordbankPath();
         if (lastPath && await this.isLastWordbankValid()) {
             console.log('Resuming with wordbank:', lastPath);
@@ -105,7 +109,7 @@ class FileLoader {
                 console.log('Wordbank database resumed successfully');
             } catch (err) {
                 console.error('Error opening wordbank db:', err);
-                this.mainWindow.webContents.send('wordbank-error', err.message);
+                this.mainWindow.webContents.send('wordbank-error', (err as Error).message);
                 return null;
             }
             this.mainWindow.webContents.send('wordbank-selected', lastPath);
@@ -117,7 +121,7 @@ class FileLoader {
         }
     }
 
-    async openFile() {
+    async openFile(): Promise<string | null> {
         const result = await dialog.showOpenDialog(this.mainWindow, {
             properties: ['openFile'],
             filters: [
@@ -139,7 +143,7 @@ class FileLoader {
     }
 
     // Method to create the Files menu template
-    getFilesMenuTemplate() {
+    getFilesMenuTemplate(): { label: string; submenu: any[] } {
         return {
             label: 'Files',
             submenu: [
