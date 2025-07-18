@@ -1,4 +1,5 @@
 import { ipcRenderer } from 'electron';
+import Store from 'electron-store';
 
 interface Settings {
     apiKey: string;
@@ -27,29 +28,47 @@ interface DOMElements {
     testConnectionBtn: HTMLButtonElement;
     saveSettingsBtn: HTMLButtonElement;
     connectionStatus: HTMLElement;
-    statusIndicator?: HTMLElement;
-    statusText?: HTMLElement;
+}
+
+// Interface for main process settings operations
+interface SettingsAPI {
+    get(): Promise<Settings>;
+    set(settings: Settings): Promise<void>;
+    testConnection(settings: Settings): Promise<{ success: boolean; error?: string }>;
 }
 
 class SettingsManager {
-    private currentSettings: Settings;
+    private store: Store;
     private dom: DOMElements;
     private isInitialized: boolean;
 
     constructor() {
-        this.currentSettings = {} as Settings;
+        this.store = new Store({
+            name: 'settings',
+            defaults: {
+                apiKey: '',
+                apiUrl: 'https://api.openai.com/v1',
+                modelName: 'gpt-4o-mini',
+                theme: 'auto',
+                language: 'en',
+                difficultyAlgorithm: 'spaced',
+                maxWords: 20,
+                debugMode: false,
+                cacheSize: 100,
+                requestTimeout: 30
+            }
+        });
         this.dom = {} as DOMElements;
         this.isInitialized = false;
     }
 
     // Initialize the settings manager
-    init(): void {
+    async init(): Promise<void> {
         if (this.isInitialized) return;
         
         this.cacheDOMElements();
         this.setupEventHandlers();
-        this.loadSettings();
-        this.setupIPCHandlers();
+        await this.loadSettings();
         
         this.isInitialized = true;
         console.log('Settings manager initialized');
@@ -79,70 +98,45 @@ class SettingsManager {
             saveSettingsBtn: document.getElementById('saveSettings') as HTMLButtonElement,
             
             // Status elements
-            connectionStatus: document.getElementById('connectionStatus') as HTMLElement,
-            statusIndicator: document.querySelector('.status-indicator') as HTMLElement,
-            statusText: document.querySelector('.status-text') as HTMLElement
+            connectionStatus: document.getElementById('connectionStatus') as HTMLElement
         };
     }
 
     // Set up event handlers
     setupEventHandlers(): void {
         // Save settings button handler
-        this.dom.saveSettingsBtn.addEventListener('click', () => {
-            this.saveSettings();
+        this.dom.saveSettingsBtn.addEventListener('click', async () => {
+            await this.saveSettings();
         });
 
         // Test connection button handler
-        this.dom.testConnectionBtn.addEventListener('click', () => {
-            this.testAPIConnection();
+        this.dom.testConnectionBtn.addEventListener('click', async () => {
+            await this.testAPIConnection();
         });
 
         // Auto-save on input changes (with debounce)
         const inputs = [this.dom.apiUrlInput, this.dom.modelNameInput, this.dom.apiKeyInput];
         inputs.forEach(input => {
-            input.addEventListener('input', this.debounce(() => {
+            input.addEventListener('input', this.debounce(async () => {
                 this.validateInputs();
             }, 300) as EventListener);
         });
     }
 
-    // Set up IPC handlers for communication with main process
-    setupIPCHandlers(): void {
-        // Handle settings data from main process
-        ipcRenderer.on('settings-data', (event, settings: Settings) => {
-            this.currentSettings = settings;
+    // Load settings from electron-store
+    async loadSettings(): Promise<void> {
+        try {
+            const settings = (this.store as any).store as Settings;
             this.populateForm(settings);
-        });
-
-        // Handle settings saved confirmation
-        ipcRenderer.on('settings-saved', () => {
-            this.showConnectionStatus('Settings saved successfully!', 'success');
-        });
-
-        // Handle AI connection test results
-        ipcRenderer.on('ai-connection-result', (event, result: { success: boolean; error?: string }) => {
-            this.dom.testConnectionBtn.disabled = false;
-            if (result.success) {
-                this.showConnectionStatus('Connection successful!', 'success');
-            } else {
-                this.showConnectionStatus(result.error || 'Connection failed', 'error');
-            }
-        });
-
-        // Handle show settings event from main process (no longer needed but kept for compatibility)
-        ipcRenderer.on('show-settings', () => {
-            // Settings window is now handled by main process
-            console.log('Settings window should be opened by main process');
-        });
+            this.validateInputs();
+        } catch (error) {
+            console.error('Error loading settings:', error);
+            this.showConnectionStatus('Error loading settings', 'error');
+        }
     }
 
-    // Load settings from main process
-    loadSettings(): void {
-        ipcRenderer.send('get-settings');
-    }
-
-    // Save settings to main process
-    saveSettings(): void {
+    // Save settings to electron-store
+    async saveSettings(): Promise<void> {
         const settings = this.getFormData();
         
         if (!this.validateSettings(settings)) {
@@ -150,8 +144,20 @@ class SettingsManager {
             return;
         }
 
-        ipcRenderer.send('save-settings', settings);
-        this.currentSettings = settings;
+        try {
+            // Save to electron-store
+            Object.entries(settings).forEach(([key, value]) => {
+                (this.store as any).set(key, value);
+            });
+            
+            // Notify main process about settings change
+            ipcRenderer.send('settings-changed', settings);
+            
+            this.showConnectionStatus('Settings saved successfully!', 'success');
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            this.showConnectionStatus('Error saving settings', 'error');
+        }
     }
 
     // Get form data as settings object
@@ -232,19 +238,32 @@ class SettingsManager {
     }
 
     // Test API connection
-    testAPIConnection(): void {
+    async testAPIConnection(): Promise<boolean> {
         const settings = this.getFormData();
 
         if (!settings.apiKey) {
             this.showConnectionStatus('Please enter an API key first', 'error');
-            return;
+            return false;
         }
 
-        this.showConnectionStatus('Testing connection...', 'loading');
-        this.dom.testConnectionBtn.disabled = true;
+        // Show loading status
+        this.showConnectionStatus('Testing connection...', 'info');
 
-        // Test the actual API connection
-        ipcRenderer.send('test-ai-connection', settings);
+        try {
+            // Send IPC message to main process to test connection
+            const result = await ipcRenderer.invoke('test-api-connection', settings);
+
+            if (result.success) {
+                this.showConnectionStatus('Connection successful!', 'success');
+                return true;
+            } else {
+                this.showConnectionStatus(result.error || 'Connection failed', 'error');
+                return false;
+            }
+        } catch (error) {
+            this.showConnectionStatus('Error testing connection', 'error');
+            return false;
+        }
     }
 
     // Show connection status message
@@ -264,12 +283,12 @@ class SettingsManager {
     }
 
     // Show settings screen (simplified for dedicated window)
-    show(): void {
+    async show(): Promise<void> {
         // Focus on first input
         this.dom.apiUrlInput.focus();
         
         // Load current settings
-        this.loadSettings();
+        await this.loadSettings();
     }
 
     // Hide settings screen (simplified for dedicated window)
@@ -283,13 +302,13 @@ class SettingsManager {
 
     // Check if settings are configured
     isConfigured(): boolean {
-        return !!(this.currentSettings.apiKey && 
-               this.currentSettings.apiKey.length > 0);
+        const apiKey = (this.store as any).get('apiKey', '');
+        return !!(apiKey && apiKey.length > 0);
     }
 
     // Get current settings
     getCurrentSettings(): Settings {
-        return { ...this.currentSettings };
+        return (this.store as any).store as Settings;
     }
 
     // Reset settings to defaults
@@ -308,6 +327,10 @@ class SettingsManager {
     importSettings(settingsJson: string): void {
         try {
             const settings = JSON.parse(settingsJson);
+            // Update store with imported settings
+            Object.entries(settings).forEach(([key, value]) => {
+                (this.store as any).set(key, value);
+            });
             this.populateForm(settings);
             this.validateInputs();
             this.showConnectionStatus('Settings imported successfully', 'success');
@@ -318,11 +341,18 @@ class SettingsManager {
 
     // Export settings to JSON
     exportSettings(): string {
-        const settings = this.getFormData();
+        const settings = this.getCurrentSettings();
         // Don't export API key for security
         const exportSettings = {
             apiUrl: settings.apiUrl,
-            modelName: settings.modelName
+            modelName: settings.modelName,
+            theme: settings.theme,
+            language: settings.language,
+            difficultyAlgorithm: settings.difficultyAlgorithm,
+            maxWords: settings.maxWords,
+            debugMode: settings.debugMode,
+            cacheSize: settings.cacheSize,
+            requestTimeout: settings.requestTimeout
         };
         return JSON.stringify(exportSettings, null, 2);
     }
@@ -340,22 +370,9 @@ class SettingsManager {
         };
     }
 
-    // Cleanup method
-    destroy(): void {
-        if (this.isInitialized) {
-            // Remove event listeners
-            this.dom.saveSettingsBtn.removeEventListener('click', this.saveSettings);
-            this.dom.testConnectionBtn.removeEventListener('click', this.testAPIConnection);
-            
-            // Remove IPC listeners
-            ipcRenderer.removeAllListeners('settings-data');
-            ipcRenderer.removeAllListeners('settings-saved');
-            ipcRenderer.removeAllListeners('ai-connection-result');
-            ipcRenderer.removeAllListeners('show-settings');
-            
-            this.isInitialized = false;
-            console.log('Settings manager destroyed');
-        }
+    // Get settings for main process
+    getSettingsForMain(): Settings {
+        return this.getCurrentSettings();
     }
 }
 

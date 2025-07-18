@@ -27,5 +27,20 @@
  */
 
 import './index.css';
+import 'mdui/mdui.css';
+import 'mdui';
 
-console.log('👋 This message is being logged by "renderer.js", included via webpack');
+import { createWelcomePage } from './components/welcome';
+
+function setCardContent(element: HTMLElement) {
+  const cardContent = document.getElementById('card-content');
+  if (cardContent) {
+    cardContent.innerHTML = '';
+    cardContent.appendChild(element);
+  }
+}
+
+// Place welcome page inside the card
+setCardContent(createWelcomePage());
+
+export { setCardContent };
