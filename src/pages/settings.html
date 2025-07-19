@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Settings - OpenLexicon</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+    }
+    #settings-container {
+      width: 100%;
+      max-width: 500px;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="settings-container"></div>
+  <script type="module">
+    // Import and initialize settings page
+    import { createSettingsPage } from '../components/settings.js';
+    import '../index.css';
+    import 'mdui/mdui.css';
+    import 'mdui';
+    
+    const container = document.getElementById('settings-container');
+    if (container) {
+      container.appendChild(createSettingsPage());
+    }
+  </script>
+</body>
+</html>

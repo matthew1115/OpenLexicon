@@ -381,11 +381,12 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = SettingsManager;
 }
 
-// Global instance for direct use
 declare global {
     interface Window {
         SettingsManager: typeof SettingsManager;
     }
 }
-
 window.SettingsManager = SettingsManager;
+
+// Export for use in other modules
+export { SettingsManager };

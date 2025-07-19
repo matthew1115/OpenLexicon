@@ -32,6 +32,25 @@ import 'mdui';
 
 import { createWelcomePage } from './components/welcome';
 
+// Apply mdui theme from settings
+function applyTheme() {
+  let theme = 'auto';
+  try {
+    // @ts-ignore
+    const settingsManager = window.SettingsManager ? new window.SettingsManager() : null;
+    if (settingsManager) {
+      const settings = settingsManager.getCurrentSettings();
+      theme = settings.theme || 'auto';
+    }
+  } catch (e) {
+    // fallback to auto
+  }
+  const html = document.documentElement;
+  html.classList.remove('mdui-theme-dark', 'mdui-theme-light', 'mdui-theme-auto');
+  html.classList.add(`mdui-theme-${theme}`);
+}
+applyTheme();
+
 function setCardContent(element: HTMLElement) {
   const cardContent = document.getElementById('card-content');
   if (cardContent) {
@@ -40,7 +59,10 @@ function setCardContent(element: HTMLElement) {
   }
 }
 
+// IPC handlers removed - settings and about now open in separate windows
+
 // Place welcome page inside the card
 setCardContent(createWelcomePage());
+
 
 export { setCardContent };

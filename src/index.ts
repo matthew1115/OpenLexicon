@@ -11,6 +11,10 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
+import { Menu } from 'electron';
+
+const FileLoader = require('./utils/load_file');
+
 const createWindow = (): void => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -20,6 +24,53 @@ const createWindow = (): void => {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },
   });
+
+  // Set up FileLoader instance
+  const fileLoader = new FileLoader(mainWindow);
+
+  // Set up application menu
+  const menu = Menu.buildFromTemplate([
+    {
+      label: 'Files',
+      submenu: [
+        {
+          label: 'Open Wordbank',
+          click: async () => {
+            await fileLoader.openWordbank();
+          }
+        }
+      ]
+    },
+    {
+      label: 'Settings',
+      click: () => {
+        const settingsWin = new BrowserWindow({
+          width: 500,
+          height: 600,
+          autoHideMenuBar: true,
+          webPreferences: {
+            preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+          },
+        });
+        settingsWin.loadFile('src/pages/settings.html');
+      }
+    },
+    {
+      label: 'About',
+      click: () => {
+        const aboutWin = new BrowserWindow({
+          width: 400,
+          height: 300,
+          autoHideMenuBar: true,
+          webPreferences: {
+            preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+          },
+        });
+        aboutWin.loadFile('src/pages/about.html');
+      }
+    }
+  ]);
+  Menu.setApplicationMenu(menu);
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
