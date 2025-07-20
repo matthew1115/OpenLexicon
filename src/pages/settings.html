@@ -15,24 +15,349 @@
     }
     #settings-container {
       width: 100%;
-      max-width: 500px;
+      max-width: 700px;
+      height: 90vh;
       padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .settings-content {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 20px;
+    }
+    .save-section {
+      flex-shrink: 0;
+      padding-top: 16px;
+      border-top: 1px solid #e0e0e0;
+    }
+    .error {
+      border-color: #f44336 !important;
+    }
+    .connection-status {
+      padding: 12px;
+      border-radius: 4px;
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .connection-status.success {
+      background-color: #e8f5e8;
+      color: #2e7d32;
+      border: 1px solid #4caf50;
+    }
+    .connection-status.error {
+      background-color: #ffebee;
+      color: #c62828;
+      border: 1px solid #f44336;
+    }
+    .connection-status.info {
+      background-color: #e3f2fd;
+      color: #1565c0;
+      border: 1px solid #2196f3;
+    }
+    .connection-status.hidden {
+      display: none !important;
     }
   </style>
+  <link rel="stylesheet" href="../index.css">
+  <link rel="stylesheet" href="../../node_modules/mdui/mdui.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <script src="../../node_modules/mdui/mdui.global.js"></script>
 </head>
 <body>
-  <div id="settings-container"></div>
-  <script type="module">
-    // Import and initialize settings page
-    import { createSettingsPage } from '../components/settings.js';
-    import '../index.css';
-    import 'mdui/mdui.css';
-    import 'mdui';
+  <div id="settings-container" class="mdui-container mx-auto p-6 rounded-lg shadow-lg bg-white dark:bg-gray-800">
+    <h2 class="mdui-typo-title text-2xl font-bold mb-6 text-gray-900 dark:text-white">Settings</h2>
     
-    const container = document.getElementById('settings-container');
-    if (container) {
-      container.appendChild(createSettingsPage());
+    <!-- Scrollable Settings Content -->
+    <div class="settings-content">
+      <!-- Tab Navigation -->
+      <mdui-tabs value="general" class="mb-6">
+        <mdui-tab value="general" icon="settings">General</mdui-tab>
+        <mdui-tab value="ai" icon="smart_toy">AI</mdui-tab>
+        <mdui-tab value="advanced" icon="tune">Advanced</mdui-tab>
+
+        <!-- General Settings Tab Panel -->
+        <mdui-tab-panel slot="panel" value="general">
+        <h3 class="mdui-typo-headline mb-4">General Settings</h3>
+        
+        <!-- Theme Selection -->
+        <div class="mdui-row mb-4">
+          <mdui-select label="Theme" id="theme" class="w-full">
+            <mdui-menu-item value="auto">Auto</mdui-menu-item>
+            <mdui-menu-item value="light">Light</mdui-menu-item>
+            <mdui-menu-item value="dark">Dark</mdui-menu-item>
+          </mdui-select>
+        </div>
+
+        <!-- Language Selection -->
+        <div class="mdui-row mb-4">
+          <mdui-select label="Language" id="language" class="w-full">
+            <mdui-menu-item value="en">English</mdui-menu-item>
+            <mdui-menu-item value="zh">中文</mdui-menu-item>
+          </mdui-select>
+        </div>
+
+        <!-- Difficulty Algorithm -->
+        <div class="mdui-row mb-4">
+          <mdui-select label="Difficulty Algorithm" id="difficultyAlgorithm" class="w-full">
+            <mdui-menu-item value="spaced">Spaced Repetition</mdui-menu-item>
+            <mdui-menu-item value="random">Random</mdui-menu-item>
+            <mdui-menu-item value="linear">Linear</mdui-menu-item>
+          </mdui-select>
+        </div>
+
+        <!-- Max Words -->
+        <div class="mdui-row mb-4">
+          <mdui-text-field 
+            label="Max Words per Session" 
+            type="number" 
+            id="maxWords" 
+            value="20" 
+            min="1" 
+            max="100"
+            class="w-full">
+          </mdui-text-field>
+        </div>
+        </mdui-tab-panel>
+
+        <!-- AI Settings Tab Panel -->
+        <mdui-tab-panel slot="panel" value="ai">
+          <h3 class="mdui-typo-headline mb-4">AI Configuration</h3>
+          
+          <!-- API URL -->
+          <div class="mdui-row mb-4">
+            <mdui-text-field 
+              label="API URL" 
+              type="url" 
+              id="apiUrl" 
+              placeholder="https://api.openai.com/v1"
+              required
+              class="w-full">
+            </mdui-text-field>
+          </div>
+
+          <!-- Model Name -->
+          <div class="mdui-row mb-4">
+            <mdui-text-field 
+              label="Model Name" 
+              id="modelName" 
+              placeholder="gpt-4o-mini"
+              required
+              class="w-full">
+            </mdui-text-field>
+          </div>
+
+          <!-- API Key -->
+          <div class="mdui-row mb-4">
+            <mdui-text-field 
+              label="API Key" 
+              type="password" 
+              id="apiKey" 
+              placeholder="Enter your API key"
+              required
+              class="w-full">
+            </mdui-text-field>
+          </div>
+
+          <!-- Test Connection Button -->
+          <div class="mdui-row mb-4">
+            <mdui-button 
+              variant="outlined" 
+              id="testConnection" 
+              icon="wifi_tethering"
+              class="w-full">
+              Test Connection
+            </mdui-button>
+          </div>
+
+          <!-- Connection Status -->
+          <div id="connectionStatus" class="connection-status hidden">
+            <mdui-icon name="info"></mdui-icon>
+            <span class="status-text"></span>
+          </div>
+        </mdui-tab-panel>
+
+        <!-- Advanced Settings Tab Panel -->
+        <mdui-tab-panel slot="panel" value="advanced">
+          <h3 class="mdui-typo-headline mb-4">Advanced Settings</h3>
+          
+          <!-- Debug Mode -->
+          <div class="mdui-row mb-4">
+            <mdui-select label="Debug Mode" id="debugMode" class="w-full">
+              <mdui-menu-item value="false">Disabled</mdui-menu-item>
+              <mdui-menu-item value="true">Enabled</mdui-menu-item>
+            </mdui-select>
+          </div>
+
+          <!-- Cache Size -->
+          <div class="mdui-row mb-4">
+            <mdui-text-field 
+              label="Cache Size" 
+              type="number" 
+              id="cacheSize" 
+              value="100" 
+              min="10" 
+              max="1000"
+              helper="Number of items to keep in cache"
+              class="w-full">
+            </mdui-text-field>
+          </div>
+
+          <!-- Request Timeout -->
+          <div class="mdui-row mb-4">
+            <mdui-text-field 
+              label="Request Timeout (seconds)" 
+              type="number" 
+              id="requestTimeout" 
+              value="30" 
+              min="5" 
+              max="120"
+              helper="Maximum time to wait for API responses"
+              class="w-full">
+            </mdui-text-field>
+          </div>
+
+          <!-- Settings Management -->
+          <div class="mdui-row mb-4">
+            <h4 class="mdui-typo-subheading mb-2">Settings Management</h4>
+            <div class="flex gap-2 flex-wrap">
+              <mdui-button variant="outlined" id="exportSettings" icon="download">
+                Export Settings
+              </mdui-button>
+              <mdui-button variant="outlined" id="importSettings" icon="upload">
+                Import Settings
+              </mdui-button>
+              <mdui-button variant="outlined" id="resetSettings" icon="restore">
+                Reset to Defaults
+              </mdui-button>
+            </div>
+          </div>
+        </mdui-tab-panel>
+      </mdui-tabs>
+    </div>
+
+    <!-- Fixed Save Button at Bottom -->
+    <div class="save-section">
+      <div class="flex justify-center">
+        <mdui-button 
+          variant="filled" 
+          id="saveSettings" 
+          icon="save"
+          class="px-8">
+          Save Settings
+        </mdui-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for importing settings -->
+  <input type="file" id="importFileInput" accept=".json" style="display: none;">
+
+  <script type="module">
+    // Import mdui ES module for proper initialization
+    import 'mdui';
+    import { SettingsManager } from '../utils/settings.js';
+
+    const manager = new SettingsManager();
+
+
+    // Initialize settings manager
+    async function initializeSettings() {
+      try {
+        await manager.init();
+      } catch (error) {
+        console.error('Failed to initialize settings manager:', error);
+        // Fallback initialization for basic functionality
+        await loadSettings();
+        setupEventHandlers();
+      }
     }
+
+    // Fallback settings loading
+    async function loadSettings() {
+      const settings = manager.getCurrentSettings();
+      
+      // Populate form fields
+      const elements = {
+        theme: document.getElementById('theme'),
+        language: document.getElementById('language'),
+        difficultyAlgorithm: document.getElementById('difficultyAlgorithm'),
+        maxWords: document.getElementById('maxWords'),
+        apiUrl: document.getElementById('apiUrl'),
+        modelName: document.getElementById('modelName'),
+        apiKey: document.getElementById('apiKey'),
+        debugMode: document.getElementById('debugMode'),
+        cacheSize: document.getElementById('cacheSize'),
+        requestTimeout: document.getElementById('requestTimeout')
+      };
+
+      // Set values
+      if (elements.theme) elements.theme.value = settings.theme || 'auto';
+      if (elements.language) elements.language.value = settings.language || 'en';
+      if (elements.difficultyAlgorithm) elements.difficultyAlgorithm.value = settings.difficultyAlgorithm || 'spaced';
+      if (elements.maxWords) elements.maxWords.value = String(settings.maxWords || 20);
+      if (elements.apiUrl) elements.apiUrl.value = settings.apiUrl || 'https://api.openai.com/v1';
+      if (elements.modelName) elements.modelName.value = settings.modelName || 'gpt-4o-mini';
+      if (elements.apiKey) elements.apiKey.value = settings.apiKey || '';
+      if (elements.debugMode) elements.debugMode.value = settings.debugMode ? 'true' : 'false';
+      if (elements.cacheSize) elements.cacheSize.value = String(settings.cacheSize || 100);
+      if (elements.requestTimeout) elements.requestTimeout.value = String(settings.requestTimeout || 30);
+    }
+
+    // Setup additional event handlers
+    function setupEventHandlers() {
+      // Export settings
+      document.getElementById('exportSettings')?.addEventListener('click', () => {
+        const settingsJson = manager.exportSettings();
+        const blob = new Blob([settingsJson], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'openlexicon-settings.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+
+      // Import settings
+      document.getElementById('importSettings')?.addEventListener('click', () => {
+        document.getElementById('importFileInput')?.click();
+      });
+
+      document.getElementById('importFileInput')?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              manager.importSettings(e.target.result);
+              loadSettings(); // Refresh the form
+            } catch (error) {
+              alert('Error importing settings: Invalid file format');
+            }
+          };
+          reader.readAsText(file);
+        }
+      });
+
+      // Reset settings
+      document.getElementById('resetSettings')?.addEventListener('click', () => {
+        if (confirm('Are you sure you want to reset all settings to defaults?')) {
+          manager.resetToDefaults();
+        }
+      });
+    }
+
+    // Initialize everything when DOM is loaded
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initializeSettings();
+    });
+
+    // Ensure settings manager is available globally for compatibility
+    window.settingsManager = manager;
   </script>
 </body>
 </html>

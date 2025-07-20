@@ -43,31 +43,41 @@ const createWindow = (): void => {
     },
     {
       label: 'Settings',
-      click: () => {
-        const settingsWin = new BrowserWindow({
-          width: 500,
-          height: 600,
-          autoHideMenuBar: true,
-          webPreferences: {
-            preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
-          },
-        });
-        settingsWin.loadFile('src/pages/settings.html');
-      }
+      submenu: [
+        {
+          label: 'Open Settings',
+          click: () => {
+            const settingsWin = new BrowserWindow({
+              width: 500,
+              height: 600,
+              autoHideMenuBar: true,
+              webPreferences: {
+                preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+              },
+            });
+            settingsWin.loadFile('src/pages/settings.html');
+          }
+        }
+      ]
     },
     {
       label: 'About',
-      click: () => {
-        const aboutWin = new BrowserWindow({
-          width: 400,
-          height: 300,
-          autoHideMenuBar: true,
-          webPreferences: {
-            preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
-          },
-        });
-        aboutWin.loadFile('src/pages/about.html');
-      }
+      submenu: [
+        {
+          label: 'About',
+          click: () => {
+            const aboutWin = new BrowserWindow({
+              width: 400,
+              height: 300,
+              autoHideMenuBar: true,
+              webPreferences: {
+                preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+              },
+            });
+            aboutWin.loadFile('src/pages/about.html');
+          }
+        }
+      ]
     }
   ]);
   Menu.setApplicationMenu(menu);
