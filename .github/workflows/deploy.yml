@@ -32,11 +32,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: 'pnpm' # Set cache to pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9 # Specify pnpm version
       - name: Install dependencies
-        run: npm install
+        run: pnpm install # Use pnpm install
       - name: Build
-        run: npm run build # This command uses the 'base' from vite.config.js
+        run: pnpm run build # Use pnpm run build
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
