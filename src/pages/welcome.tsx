@@ -3,17 +3,17 @@
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-export default function Welcome() {
+export default function WelcomePage() {
   return (
     <div className="h-screen flex items-center justify-center">
       <Card className="min-w-[340px] shadow-lg">
         <CardHeader>
           <CardTitle className="text-center text-2xl font-bold">
-            openlexicon
+            OpenLexicon
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Optionally, add a subtitle or description here */}
+          Your AI-powered vocabulary builder
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
           <Button className="w-full" variant="default">
