@@ -1,7 +1,7 @@
 // src/utils/settings.ts
 
 export interface GeneralSettings {
-  theme: 'light' | 'dark';
+  theme: 'light' | 'dark' | 'system';
   language: string;
   wordsPerSession: number;
   srsMethod: string;
@@ -48,7 +48,7 @@ export function updateSettings(partial: Partial<Settings>): void {
 export function getDefaultSettings(): Settings {
   return {
     general: {
-      theme: 'light',
+      theme: 'system',
       language: 'en',
       wordsPerSession: 10,
       srsMethod: 'default',

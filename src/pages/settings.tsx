@@ -6,15 +6,18 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select"
 import React, { useEffect, useState } from "react"
 import { getSettings, setSettings, getDefaultSettings } from "@/utils/settings"
+import { useTheme } from "@/components/theme-provider"
 import type { Settings } from "@/utils/settings"
 
 interface SettingsModalProps {
   open: boolean
   onClose: () => void
+  onSettingsChange?: (settings: Settings) => void
 }
 
-export function SettingsModal({ open, onClose }: SettingsModalProps) {
+export function SettingsModal({ open, onClose, onSettingsChange }: SettingsModalProps) {
   const [settings, setSettingsState] = useState<Settings>(getDefaultSettings())
+  const { setTheme } = useTheme()
 
   useEffect(() => {
     if (open) {
@@ -36,6 +39,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
 
   function handleDone() {
     setSettings(settings)
+    setTheme(settings.general.theme)
+    if (onSettingsChange) onSettingsChange(settings)
     onClose()
   }
 
@@ -64,18 +69,25 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 <div className="space-y-4">
                   <div>
                     <label className="block mb-1 font-medium">Theme</label>
-                    <Select
-                      value={settings.general.theme}
-                      onValueChange={v => handleChange("general.theme", v)}
-                    >
-                      <SelectTrigger>
-                        <span>{settings.general.theme === "light" ? "Light" : "Dark"}</span>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="light">Light</SelectItem>
-                        <SelectItem value="dark">Dark</SelectItem>
-                      </SelectContent>
-                    </Select>
+<Select
+  value={settings.general.theme}
+  onValueChange={v => handleChange("general.theme", v)}
+>
+  <SelectTrigger>
+    <span>
+      {settings.general.theme === "system"
+        ? "System"
+        : settings.general.theme === "light"
+        ? "Light"
+        : "Dark"}
+    </span>
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="system">System</SelectItem>
+    <SelectItem value="light">Light</SelectItem>
+    <SelectItem value="dark">Dark</SelectItem>
+  </SelectContent>
+</Select>
                   </div>
                   <div>
                     <label className="block mb-1 font-medium">Language</label>
