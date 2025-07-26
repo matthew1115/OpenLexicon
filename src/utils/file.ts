@@ -62,6 +62,14 @@ export async function getStoredWordbank(): Promise<WordRecord[] | null> {
 }
 
 /**
+ * Checks if a wordbank exists in localforage.
+ */
+export async function hasStoredWordbank(): Promise<boolean> {
+  const data = await localforage.getItem(WORDBANK_KEY);
+  return Array.isArray(data) && data.length > 0;
+}
+
+/**
  * Saves the stored wordbank as a downloadable JSON file.
  */
 export async function saveWordbankToFile(): Promise<void> {
