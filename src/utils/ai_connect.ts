@@ -65,6 +65,57 @@ class AIConnect {
     }
 
     /**
+     * Generate four choices for a word, only one of which is the correct meaning.
+     * The format is strict JSON: an array of objects with 'choice' and 'isCorrect' fields.
+     * @param word - The word to generate choices for
+     * @returns An array of four objects: { choice: string, isCorrect: boolean }
+     */
+    async generateWordChoices(word: string, retry: number = 1): Promise<{ choice: string, isCorrect: boolean }[]> {
+        if (!this.isInitialized) {
+            throw new Error('AI client not initialized. Call initialize() first.');
+        }
+
+        const prompt = `For the word "${word}", generate four answer choices as an array of JSON objects. Each object must have two fields: 'choice' (string, the meaning) and 'isCorrect' (boolean, true only for the correct meaning). Only one object should have isCorrect: true. The other three should be plausible but incorrect. Return only the JSON array, nothing else.`;
+        const system = 'You are a helpful assistant that creates multiple-choice vocabulary questions. Always return a strict JSON array of objects with fields: choice (string), isCorrect (boolean). Do not include any explanation or text outside the JSON.';
+
+        const getChoices = async (): Promise<{ choice: string, isCorrect: boolean }[] | null> => {
+            const response = await this.client!.chat.completions.create({
+                model: this.modelName,
+                messages: [
+                    { role: 'system', content: system },
+                    { role: 'user', content: prompt }
+                ],
+                max_tokens: 300,
+                temperature: 0.7
+            });
+            const content = response.choices[0].message.content?.trim() || '';
+            try {
+                const choices = JSON.parse(content);
+                if (Array.isArray(choices) && choices.length === 4 && choices.every(c => typeof c.choice === 'string' && typeof c.isCorrect === 'boolean')) {
+                    return choices;
+                }
+                return null;
+            } catch (e) {
+                console.error('Failed to parse word choices JSON:', content);
+                return null;
+            }
+        };
+
+        try {
+            let choices = await getChoices();
+            let attempts = retry;
+            while (!choices && attempts > 0) {
+                attempts--;
+                choices = await getChoices();
+            }
+            return choices || [];
+        } catch (error) {
+            console.error('Error generating word choices:', error);
+            throw new Error(`Failed to generate word choices: ${(error as Error).message}`);
+        }
+    }
+
+    /**
      * Generate a definition for a word
      * @param word - The word to define
      * @param context - Optional context where the word was found

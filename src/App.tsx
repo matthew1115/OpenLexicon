@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import WelcomePage from './pages/welcome'
+import LearnPage from './pages/learn'
 
 import './App.css'
 
@@ -16,6 +17,7 @@ function App() {
     const s = getSettings();
     return s?.general?.theme || "system";
   });
+  const [Page, setPage] = useState("welcome");
 
   useEffect(() => {
     const handleStorage = () => {
@@ -28,7 +30,8 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme={theme}>
-      <WelcomePage />
+      {Page === "welcome" && <WelcomePage onNavigate={setPage} />}
+      {Page === "learn" && <LearnPage />}
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}

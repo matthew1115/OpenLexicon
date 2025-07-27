@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { hasStoredWordbank, loadWordbankFromFile } from "@/utils/file";
 
-export default function WelcomePage() {
+export default function WelcomePage({ onNavigate }: { onNavigate: (page: string) => void }) {
   const [hasWordbank, setHasWordbank] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -13,6 +13,7 @@ export default function WelcomePage() {
 
   const handleOpenWordbank = () => {
     fileInputRef.current?.click();
+    onNavigate("learn");
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,6 +47,7 @@ export default function WelcomePage() {
             className="w-full"
             variant="default"
             disabled={hasWordbank === false}
+            onClick={() => onNavigate("learn")}
           >
             Resume session
           </Button>
