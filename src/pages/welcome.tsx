@@ -13,7 +13,6 @@ export default function WelcomePage({ onNavigate }: { onNavigate: (page: string)
 
   const handleOpenWordbank = () => {
     fileInputRef.current?.click();
-    onNavigate("learn");
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,6 +21,7 @@ export default function WelcomePage({ onNavigate }: { onNavigate: (page: string)
       try {
         await loadWordbankFromFile(file);
         setHasWordbank(true);
+        onNavigate("learn");
         // Optionally, show a success message or redirect
       } catch (err) {
         alert((err as Error).message);

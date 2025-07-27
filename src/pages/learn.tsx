@@ -4,7 +4,7 @@ import { QuizCard } from "../components/learn_cards";
 import AIConnect from "../utils/ai_connect";
 import type { WordRecord } from "../utils/file";
 
-function getAI(aiRef: React.MutableRefObject<AIConnect | null>) {
+function getAI(aiRef: React.RefObject<AIConnect | null>) {
   if (!aiRef.current) {
     aiRef.current = new AIConnect();
     // You may want to initialize with your API key and baseURL here
