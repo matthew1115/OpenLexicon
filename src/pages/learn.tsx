@@ -28,7 +28,7 @@ export default function LearnPage() {
   useEffect(() => {
     async function prepare() {
       setLoading(true);
-      const word = autoGetNextWord();
+      const word = await autoGetNextWord();
       if (!word) {
         setStep({ type: "done" });
         setLoading(false);
@@ -62,10 +62,10 @@ export default function LearnPage() {
   }, []);
 
   // Handler for judge card
-  const handleJudge = (result: boolean) => {
+  const handleJudge = async (result: boolean) => {
     if (step && step.type === "judge") {
       if (result) {
-        updateWordReview(step.word.word, true);
+        await updateWordReview(step.word.word, true);
         window.location.reload();
       } else {
         const aiInst = getAI(ai);
@@ -84,7 +84,7 @@ export default function LearnPage() {
       const aiInst = getAI(ai);
       setLoading(true);
       const ok = await aiInst.checkExample(step.word.word, sentence);
-      updateWordReview(step.word.word, ok);
+      await updateWordReview(step.word.word, ok);
       setLoading(false);
       window.location.reload();
     }
@@ -98,16 +98,16 @@ export default function LearnPage() {
     ) {
       const correct =
         meaning.trim().toLowerCase() === step.word.definition.trim().toLowerCase();
-      updateWordReview(step.word.word, correct);
+      await updateWordReview(step.word.word, correct);
       window.location.reload();
     }
   };
 
   // Handler for multiple choice
-  const handleMultiple = (option: string) => {
+  const handleMultiple = async (option: string) => {
     if (step && step.type === "multiple") {
       const correct = step.choices.find((c) => c.choice === option)?.isCorrect;
-      updateWordReview(step.word.word, !!correct);
+      await updateWordReview(step.word.word, !!correct);
       window.location.reload();
     }
   };
