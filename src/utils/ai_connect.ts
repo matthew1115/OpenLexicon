@@ -71,37 +71,37 @@ class AIConnect {
      * @returns An array of four objects: { choice: string, isCorrect: boolean }
      */
     async generateWordChoices(word: string, retry: number = 1): Promise<{ choice: string, isCorrect: boolean }[]> {
-        if (!this.isInitialized) {
-            throw new Error('AI client not initialized. Call initialize() first.');
-        }
-
-        const prompt = `For the word "${word}", generate four answer choices as an array of JSON objects. Each object must have two fields: 'choice' (string, the meaning) and 'isCorrect' (boolean, true only for the correct meaning). Only one object should have isCorrect: true. The other three should be plausible but incorrect. Return only the JSON array, nothing else.`;
-        const system = 'You are a helpful assistant that creates multiple-choice vocabulary questions. Always return a strict JSON array of objects with fields: choice (string), isCorrect (boolean). Do not include any explanation or text outside the JSON.';
-
-        const getChoices = async (): Promise<{ choice: string, isCorrect: boolean }[] | null> => {
-            const response = await this.client!.chat.completions.create({
-                model: this.modelName,
-                messages: [
-                    { role: 'system', content: system },
-                    { role: 'user', content: prompt }
-                ],
-                max_tokens: 300,
-                temperature: 0.7
-            });
-            const content = response.choices[0].message.content?.trim() || '';
-            try {
-                const choices = JSON.parse(content);
-                if (Array.isArray(choices) && choices.length === 4 && choices.every(c => typeof c.choice === 'string' && typeof c.isCorrect === 'boolean')) {
-                    return choices;
-                }
-                return null;
-            } catch (e) {
-                console.error('Failed to parse word choices JSON:', content);
-                return null;
-            }
-        };
-
         try {
+            if (!this.isInitialized) {
+                throw new Error('AI client not initialized. Call initialize() first.');
+            }
+
+            const prompt = `For the word "${word}", generate four answer choices as an array of JSON objects. Each object must have two fields: 'choice' (string, the meaning) and 'isCorrect' (boolean, true only for the correct meaning). Only one object should have isCorrect: true. The other three should be plausible but incorrect. Return only the JSON array, nothing else.`;
+            const system = 'You are a helpful assistant that creates multiple-choice vocabulary questions. Always return a strict JSON array of objects with fields: choice (string), isCorrect (boolean). Do not include any explanation or text outside the JSON.';
+
+            const getChoices = async (): Promise<{ choice: string, isCorrect: boolean }[] | null> => {
+                const response = await this.client!.chat.completions.create({
+                    model: this.modelName,
+                    messages: [
+                        { role: 'system', content: system },
+                        { role: 'user', content: prompt }
+                    ],
+                    max_tokens: 300,
+                    temperature: 0.7
+                });
+                const content = response.choices[0].message.content?.trim() || '';
+                try {
+                    const choices = JSON.parse(content);
+                    if (Array.isArray(choices) && choices.length === 4 && choices.every(c => typeof c.choice === 'string' && typeof c.isCorrect === 'boolean')) {
+                        return choices;
+                    }
+                    return null;
+                } catch (e) {
+                    console.error('Failed to parse word choices JSON:', content);
+                    return null;
+                }
+            };
+
             let choices = await getChoices();
             let attempts = retry;
             while (!choices && attempts > 0) {
@@ -111,7 +111,10 @@ class AIConnect {
             return choices || [];
         } catch (error) {
             console.error('Error generating word choices:', error);
-            throw new Error(`Failed to generate word choices: ${(error as Error).message}`);
+            if (typeof window !== "undefined" && window.alert) {
+                window.alert('AI error: ' + ((error as Error)?.message || error));
+            }
+            return [];
         }
     }
 
@@ -122,11 +125,11 @@ class AIConnect {
      * @returns The definition of the word
      */
     async generateDefinition(word: string, context: string = ''): Promise<string> {
-        if (!this.isInitialized) {
-            throw new Error('AI client not initialized. Call initialize() first.');
-        }
-
         try {
+            if (!this.isInitialized) {
+                throw new Error('AI client not initialized. Call initialize() first.');
+            }
+
             const prompt = context
                 ? `Define the word "${word}" as used in this context: "${context}". Provide a clear, concise definition.`
                 : `Define the word "${word}". Provide a clear, concise definition.`;
@@ -147,7 +150,10 @@ class AIConnect {
             return response.choices[0].message.content?.trim() || '';
         } catch (error) {
             console.error('Error generating definition:', error);
-            throw new Error(`Failed to generate definition: ${(error as Error).message}`);
+            if (typeof window !== "undefined" && window.alert) {
+                window.alert('AI error: ' + ((error as Error)?.message || error));
+            }
+            return "";
         }
     }
 
@@ -158,11 +164,11 @@ class AIConnect {
      * @returns Array of example sentences
      */
     async generateExamples(word: string, count: number = 3): Promise<string[]> {
-        if (!this.isInitialized) {
-            throw new Error('AI client not initialized. Call initialize() first.');
-        }
-
         try {
+            if (!this.isInitialized) {
+                throw new Error('AI client not initialized. Call initialize() first.');
+            }
+
             const prompt = `Create ${count} example sentences using the word "${word}". Each sentence should demonstrate different uses or meanings of the word. Return only the sentences, one per line.`;
 
             const response = await this.client!.chat.completions.create({
@@ -182,7 +188,10 @@ class AIConnect {
             return examples.filter((example: string) => example.trim().length > 0);
         } catch (error) {
             console.error('Error generating examples:', error);
-            throw new Error(`Failed to generate examples: ${(error as Error).message}`);
+            if (typeof window !== "undefined" && window.alert) {
+                window.alert('AI error: ' + ((error as Error)?.message || error));
+            }
+            return [];
         }
     }
 
@@ -193,11 +202,11 @@ class AIConnect {
      * @returns Array of synonyms
      */
     async generateSynonyms(word: string, count: number = 5): Promise<string[]> {
-        if (!this.isInitialized) {
-            throw new Error('AI client not initialized. Call initialize() first.');
-        }
-
         try {
+            if (!this.isInitialized) {
+                throw new Error('AI client not initialized. Call initialize() first.');
+            }
+
             const prompt = `Provide ${count} synonyms for the word "${word}". Return only the synonyms, separated by commas.`;
 
             const response = await this.client!.chat.completions.create({
@@ -217,7 +226,10 @@ class AIConnect {
             return synonyms.map((synonym: string) => synonym.trim()).filter((synonym: string) => synonym.length > 0);
         } catch (error) {
             console.error('Error generating synonyms:', error);
-            throw new Error(`Failed to generate synonyms: ${(error as Error).message}`);
+            if (typeof window !== "undefined" && window.alert) {
+                window.alert('AI error: ' + ((error as Error)?.message || error));
+            }
+            return [];
         }
     }
 
@@ -228,11 +240,11 @@ class AIConnect {
      * @returns Object containing definition, examples, and synonyms
      */
     async analyzeWord(word: string, context: string = ''): Promise<WordAnalysis> {
-        if (!this.isInitialized) {
-            throw new Error('AI client not initialized. Call initialize() first.');
-        }
-
         try {
+            if (!this.isInitialized) {
+                throw new Error('AI client not initialized. Call initialize() first.');
+            }
+
             const [definition, examples, synonyms] = await Promise.all([
                 this.generateDefinition(word, context),
                 this.generateExamples(word, 3),
@@ -248,7 +260,16 @@ class AIConnect {
             };
         } catch (error) {
             console.error('Error analyzing word:', error);
-            throw new Error(`Failed to analyze word: ${(error as Error).message}`);
+            if (typeof window !== "undefined" && window.alert) {
+                window.alert('AI error: ' + ((error as Error)?.message || error));
+            }
+            return {
+                word,
+                definition: "",
+                examples: [],
+                synonyms: [],
+                context
+            };
         }
     }
 
@@ -259,11 +280,11 @@ class AIConnect {
      * @returns True if the example is a correct usage, false otherwise
      */
     async checkExample(word: string, example: string): Promise<boolean> {
-        if (!this.isInitialized) {
-            throw new Error('AI client not initialized. Call initialize() first.');
-        }
-
         try {
+            if (!this.isInitialized) {
+                throw new Error('AI client not initialized. Call initialize() first.');
+            }
+
             const prompt = `Is the following sentence a correct example of the word "${word}" with no grammar errors? "${example}" Respond with "yes" or "no".`;
 
             const response = await this.client!.chat.completions.create({
@@ -282,7 +303,10 @@ class AIConnect {
             return response.choices[0].message.content?.trim().toLowerCase() === 'yes';
         } catch (error) {
             console.error('Error checking example:', error);
-            throw new Error(`Failed to check example: ${(error as Error).message}`);
+            if (typeof window !== "undefined" && window.alert) {
+                window.alert('AI error: ' + ((error as Error)?.message || error));
+            }
+            return false;
         }
     }
 
@@ -293,11 +317,11 @@ class AIConnect {
      * @returns The refined example sentence
      */
     async refineExample(word: string, example: string): Promise<string> {
-        if (!this.isInitialized) {
-            throw new Error('AI client not initialized. Call initialize() first.');
-        }
-
         try {
+            if (!this.isInitialized) {
+                throw new Error('AI client not initialized. Call initialize() first.');
+            }
+
             const prompt = `Refine the following example sentence for the word "${word}" to make it grammatically correct and more concise: "${example}". Provide only the refined sentence.`;
 
             const response = await this.client!.chat.completions.create({
@@ -316,7 +340,10 @@ class AIConnect {
             return response.choices[0].message.content?.trim() || '';
         } catch (error) {
             console.error('Error refining example:', error);
-            throw new Error(`Failed to refine example: ${(error as Error).message}`);
+            if (typeof window !== "undefined" && window.alert) {
+                window.alert('AI error: ' + ((error as Error)?.message || error));
+            }
+            return "";
         }
     }
 

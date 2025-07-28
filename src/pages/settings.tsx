@@ -8,6 +8,7 @@ import React, { useEffect, useState } from "react"
 import { getSettings, setSettings, getDefaultSettings } from "@/utils/settings"
 import { useTheme } from "@/components/theme-provider"
 import type { Settings } from "@/utils/settings"
+import AIConnect from "@/utils/ai_connect"
 
 interface SettingsModalProps {
   open: boolean
@@ -145,6 +146,32 @@ export function SettingsModal({ open, onClose, onSettingsChange }: SettingsModal
                       value={settings.ai.modelName}
                       onChange={e => handleChange("ai.modelName", e.target.value)}
                     />
+                  </div>
+                  <div>
+                    <Button
+                      className="mt-2"
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const ai = new AIConnect();
+                          ai.initialize(
+                            settings.ai.apiKey,
+                            settings.ai.apiUrl,
+                            settings.ai.modelName
+                          );
+                          const ok = await ai.testConnection();
+                          if (ok) {
+                            alert("AI connection successful!");
+                          } else {
+                            alert("AI connection failed. Please check your settings.");
+                          }
+                        } catch (e: any) {
+                          alert("AI connection failed: " + (e?.message || e));
+                        }
+                      }}
+                    >
+                      Test Connection
+                    </Button>
                   </div>
                 </div>
               </TabsContent>

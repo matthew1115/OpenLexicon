@@ -12,17 +12,9 @@ const WORD_BANK_KEY = "wordbank";
  * @returns {Promise<WordRecord[]>} Array of WordRecord objects.
  */
 export async function getWords(): Promise<WordRecord[]> {
-  const data = await localforage.getItem<string>(WORD_BANK_KEY);
-  if (!data) return [];
-  try {
-    const parsed = JSON.parse(data);
-    if (Array.isArray(parsed)) {
-      return parsed;
-    }
-    return [];
-  } catch {
-    return [];
-  }
+  const data = await localforage.getItem<WordRecord[]>(WORD_BANK_KEY);
+  if (!Array.isArray(data)) return [];
+  return data;
 }
 
 /**
@@ -32,7 +24,7 @@ export async function getWords(): Promise<WordRecord[]> {
 export async function addWord(word: WordRecord): Promise<void> {
   const words = await getWords();
   words.push(word);
-  await localforage.setItem(WORD_BANK_KEY, JSON.stringify(words));
+  await localforage.setItem(WORD_BANK_KEY, words);
 }
 
 /**
@@ -41,7 +33,7 @@ export async function addWord(word: WordRecord): Promise<void> {
  */
 export async function removeWord(wordStr: string): Promise<void> {
   const words = (await getWords()).filter(w => (w as any).word !== wordStr);
-  await localforage.setItem(WORD_BANK_KEY, JSON.stringify(words));
+  await localforage.setItem(WORD_BANK_KEY, words);
 }
 
 /**
@@ -49,7 +41,7 @@ export async function removeWord(wordStr: string): Promise<void> {
  * @param {WordRecord[]} words - Array of WordRecord objects to set.
  */
 export async function setWords(words: WordRecord[]): Promise<void> {
-  await localforage.setItem(WORD_BANK_KEY, JSON.stringify(words));
+  await localforage.setItem(WORD_BANK_KEY, words);
 }
 
 /**

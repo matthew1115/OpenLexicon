@@ -10,6 +10,7 @@ import SaveIcon from "@mui/icons-material/Save"
 import { SettingsModal } from "./pages/settings"
 import { ThemeProvider } from "@/components/theme-provider"
 import { getSettings } from "@/utils/settings"
+import { getWords } from "@/utils/wordbank"
 
 function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -18,6 +19,18 @@ function App() {
     return s?.general?.theme || "system";
   });
   const [Page, setPage] = useState("welcome");
+
+  // Save wordbank to file
+  const handleSave = async () => {
+    const words = await getWords();
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(words, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "wordbank.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
 
   useEffect(() => {
     const handleStorage = () => {
@@ -46,7 +59,12 @@ function App() {
         >
           <SettingsIcon />
         </Button>
-        <Button variant="secondary" size="icon">
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={handleSave}
+          aria-label="Save wordbank"
+        >
           <SaveIcon />
         </Button>
       </div>
