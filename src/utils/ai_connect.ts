@@ -32,7 +32,8 @@ class AIConnect {
 
         this.client = new OpenAI({
             apiKey: apiKey,
-            baseURL: baseURL
+            baseURL: baseURL,
+            dangerouslyAllowBrowser: true
         });
 
         this.modelName = modelName;
