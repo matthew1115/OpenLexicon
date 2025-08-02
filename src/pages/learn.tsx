@@ -1,14 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
 import { autoGetNextWord, updateWordReview } from "../utils/wordbank";
 import { QuizCard } from "../components/learn_cards";
-import AIConnect from "../utils/ai_connect";
+import { createAIInstance, isAIConfigured } from "../utils/ai_instance";
 import type { WordRecord } from "../utils/file";
+import type AIConnect from "../utils/ai_connect";
 
 function getAI(aiRef: React.RefObject<AIConnect | null>) {
   if (!aiRef.current) {
-    aiRef.current = new AIConnect();
-    // You may want to initialize with your API key and baseURL here
-    // aiRef.current.initialize("YOUR_API_KEY");
+    aiRef.current = createAIInstance();
   }
   return aiRef.current;
 }
@@ -47,10 +46,13 @@ export default function LearnPage() {
           setLoading(true);
           try {
             const aiInst = getAI(ai);
-            // Ensure AI is initialized before calling
-            // await aiInst.initialize("YOUR_API_KEY");
-            const choices = await aiInst.generateWordChoices(word.word);
-            setStep({ type: "multiple", word, choices });
+            if (!aiInst) {
+              // AI not configured, fall back to input mode
+              setStep({ type: "input_meaning", word });
+            } else {
+              const choices = await aiInst.generateWordChoices(word.word);
+              setStep({ type: "multiple", word, choices });
+            }
           } catch {
             setStep({ type: "input_meaning", word });
           }
@@ -69,6 +71,11 @@ export default function LearnPage() {
         window.location.reload();
       } else {
         const aiInst = getAI(ai);
+        if (!aiInst) {
+          alert('AI not configured. Please set up your API key in settings.');
+          window.location.reload();
+          return;
+        }
         setLoading(true);
         aiInst.generateDefinition(step.word.word).then((definition) => {
           setStep({ type: "input_sentence", word: step.word, definition });
@@ -82,6 +89,11 @@ export default function LearnPage() {
   const handleInputSentence = async (sentence: string) => {
     if (step && step.type === "input_sentence") {
       const aiInst = getAI(ai);
+      if (!aiInst) {
+        alert('AI not configured. Please set up your API key in settings.');
+        window.location.reload();
+        return;
+      }
       setLoading(true);
       const ok = await aiInst.checkExample(step.word.word, sentence);
       await updateWordReview(step.word.word, ok);
