@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import { fetch } from '@tauri-apps/plugin-http';
 
 interface WordAnalysis {
     word: string;
@@ -8,19 +8,41 @@ interface WordAnalysis {
     context: string;
 }
 
+interface OpenAIMessage {
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+}
+
+interface OpenAIRequest {
+    model: string;
+    messages: OpenAIMessage[];
+    max_tokens?: number;
+    temperature?: number;
+}
+
+interface OpenAIResponse {
+    choices: {
+        message: {
+            content: string;
+        };
+    }[];
+}
+
 class AIConnect {
-    private client: OpenAI | null;
+    private apiKey: string | null;
+    private baseURL: string;
     private isInitialized: boolean;
     private modelName: string;
 
     constructor() {
-        this.client = null;
+        this.apiKey = null;
+        this.baseURL = 'https://api.openai.com/v1';
         this.isInitialized = false;
         this.modelName = 'gpt-4o-mini';
     }
 
     /**
-     * Initialize the OpenAI client with API key and base URL
+     * Initialize the AI client with API key and base URL
      * @param apiKey - The API key for OpenAI or compatible API
      * @param baseURL - The base URL for the API (default: https://api.openai.com/v1)
      * @param modelName - The model name to use (default: gpt-4o-mini)
@@ -30,14 +52,56 @@ class AIConnect {
             throw new Error('API key is required');
         }
 
-        this.client = new OpenAI({
-            apiKey: apiKey,
-            baseURL: baseURL,
-            dangerouslyAllowBrowser: true
-        });
-
+        this.apiKey = apiKey;
+        this.baseURL = baseURL;
         this.modelName = modelName;
         this.isInitialized = true;
+    }
+
+    /**
+     * Make a request to the OpenAI-compatible API
+     * @param request - The request payload
+     * @returns The API response
+     */
+    private async makeAPIRequest(request: OpenAIRequest): Promise<OpenAIResponse> {
+        if (!this.isInitialized || !this.apiKey) {
+            throw new Error('AI client not initialized. Call initialize() first.');
+        }
+
+        try {
+            // Ensure proper URL construction by removing trailing slash from baseURL
+            const cleanBaseURL = this.baseURL.replace(/\/$/, '');
+            const response = await fetch(`${cleanBaseURL}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.apiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(request),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            return data as OpenAIResponse;
+        } catch (error) {
+            console.error('API request error:', error);
+            
+            // Provide more helpful error messages
+            if (error instanceof Error) {
+                if (error.message.includes('error sending request')) {
+                    const cleanBaseURL = this.baseURL.replace(/\/$/, '');
+                    throw new Error(`Network error: Unable to reach ${cleanBaseURL}. Check your internet connection and API endpoint.`);
+                } else if (error.message.includes('CORS')) {
+                    throw new Error('CORS error: This should not happen with Tauri HTTP client. Please check configuration.');
+                }
+            }
+            
+            throw error;
+        }
     }
 
     /**
@@ -50,14 +114,15 @@ class AIConnect {
         }
 
         try {
-            const response = await this.client!.chat.completions.create({
+            const request: OpenAIRequest = {
                 model: this.modelName,
                 messages: [
                     { role: 'user', content: 'Hello' }
                 ],
                 max_tokens: 5
-            });
+            };
 
+            const response = await this.makeAPIRequest(request);
             return response && response.choices && response.choices.length > 0;
         } catch (error) {
             console.error('Connection test failed:', error);
@@ -81,7 +146,7 @@ class AIConnect {
             const system = 'You are a helpful assistant that creates multiple-choice vocabulary questions. Always return a strict JSON array of objects with fields: choice (string), isCorrect (boolean). Do not include any explanation or text outside the JSON.';
 
             const getChoices = async (): Promise<{ choice: string, isCorrect: boolean }[] | null> => {
-                const response = await this.client!.chat.completions.create({
+                const request: OpenAIRequest = {
                     model: this.modelName,
                     messages: [
                         { role: 'system', content: system },
@@ -89,8 +154,11 @@ class AIConnect {
                     ],
                     max_tokens: 300,
                     temperature: 0.7
-                });
+                };
+
+                const response = await this.makeAPIRequest(request);
                 const content = response.choices[0].message.content?.trim() || '';
+                
                 try {
                     const choices = JSON.parse(content);
                     if (Array.isArray(choices) && choices.length === 4 && choices.every(c => typeof c.choice === 'string' && typeof c.isCorrect === 'boolean')) {
@@ -135,7 +203,7 @@ class AIConnect {
                 ? `Define the word "${word}" as used in this context: "${context}". Provide a clear, concise definition.`
                 : `Define the word "${word}". Provide a clear, concise definition.`;
 
-            const response = await this.client!.chat.completions.create({
+            const request: OpenAIRequest = {
                 model: this.modelName,
                 messages: [
                     {
@@ -146,8 +214,9 @@ class AIConnect {
                 ],
                 max_tokens: 150,
                 temperature: 0.3
-            });
+            };
 
+            const response = await this.makeAPIRequest(request);
             return response.choices[0].message.content?.trim() || '';
         } catch (error) {
             console.error('Error generating definition:', error);
@@ -172,7 +241,7 @@ class AIConnect {
 
             const prompt = `Create ${count} example sentences using the word "${word}". Each sentence should demonstrate different uses or meanings of the word. Return only the sentences, one per line.`;
 
-            const response = await this.client!.chat.completions.create({
+            const request: OpenAIRequest = {
                 model: this.modelName,
                 messages: [
                     {
@@ -183,8 +252,9 @@ class AIConnect {
                 ],
                 max_tokens: 200,
                 temperature: 0.5
-            });
+            };
 
+            const response = await this.makeAPIRequest(request);
             const examples = response.choices[0].message.content?.trim().split('\n') || [];
             return examples.filter((example: string) => example.trim().length > 0);
         } catch (error) {
@@ -210,7 +280,7 @@ class AIConnect {
 
             const prompt = `Provide ${count} synonyms for the word "${word}". Return only the synonyms, separated by commas.`;
 
-            const response = await this.client!.chat.completions.create({
+            const request: OpenAIRequest = {
                 model: this.modelName,
                 messages: [
                     {
@@ -221,8 +291,9 @@ class AIConnect {
                 ],
                 max_tokens: 50,
                 temperature: 0.3
-            });
+            };
 
+            const response = await this.makeAPIRequest(request);
             const synonyms = response.choices[0].message.content?.trim().split(',') || [];
             return synonyms.map((synonym: string) => synonym.trim()).filter((synonym: string) => synonym.length > 0);
         } catch (error) {
@@ -288,7 +359,7 @@ class AIConnect {
 
             const prompt = `Is the following sentence a correct example of the word "${word}" with no grammar errors? "${example}" Respond with "yes" or "no".`;
 
-            const response = await this.client!.chat.completions.create({
+            const request: OpenAIRequest = {
                 model: this.modelName,
                 messages: [
                     {
@@ -299,8 +370,9 @@ class AIConnect {
                 ],
                 max_tokens: 10,
                 temperature: 0.0
-            });
+            };
 
+            const response = await this.makeAPIRequest(request);
             return response.choices[0].message.content?.trim().toLowerCase() === 'yes';
         } catch (error) {
             console.error('Error checking example:', error);
@@ -325,7 +397,7 @@ class AIConnect {
 
             const prompt = `Refine the following example sentence for the word "${word}" to make it grammatically correct and more concise: "${example}". Provide only the refined sentence.`;
 
-            const response = await this.client!.chat.completions.create({
+            const request: OpenAIRequest = {
                 model: this.modelName,
                 messages: [
                     {
@@ -336,8 +408,9 @@ class AIConnect {
                 ],
                 max_tokens: 100,
                 temperature: 0.5
-            });
+            };
 
+            const response = await this.makeAPIRequest(request);
             return response.choices[0].message.content?.trim() || '';
         } catch (error) {
             console.error('Error refining example:', error);
