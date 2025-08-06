@@ -65,7 +65,7 @@ export function InputCard({ question, onSubmit }: InputCardProps) {
   const [value, setValue] = React.useState("");
   return (
     <Card className="w-full max-w-md mx-auto px-6">
-      <div className="mb-6 text-lg font-medium text-center">{question}</div>
+      <div className="mb-6 text-lg font-medium text-center whitespace-pre-line">{question}</div>
       <div className="space-y-4">
         <Input
           value={value}

@@ -188,6 +188,64 @@ class AIConnect {
     }
 
     /**
+     * Generate multiple choice questions with a provided correct definition
+     * @param word - The word to create choices for
+     * @param correctDefinition - The correct definition to use
+     * @param retry - Number of retry attempts
+     * @returns Array of choices with one correct and three incorrect options
+     */
+    async generateWordChoicesWithDefinition(word: string, correctDefinition: string, retry: number = 1): Promise<{ choice: string, isCorrect: boolean }[]> {
+        try {
+            if (!this.isInitialized) {
+                throw new Error('AI client not initialized. Call initialize() first.');
+            }
+
+            const prompt = `For the word "${word}" with the correct definition "${correctDefinition}", generate four answer choices as an array of JSON objects. Each object must have two fields: 'choice' (string, the meaning) and 'isCorrect' (boolean). Use the provided definition as the correct choice (isCorrect: true). Generate three other plausible but incorrect definitions (isCorrect: false). Return only the JSON array, nothing else.`;
+            const system = 'You are a helpful assistant that creates multiple-choice vocabulary questions. Always return a strict JSON array of objects with fields: choice (string), isCorrect (boolean). Do not include any explanation or text outside the JSON.';
+
+            const getChoices = async (): Promise<{ choice: string, isCorrect: boolean }[] | null> => {
+                const request: OpenAIRequest = {
+                    model: this.modelName,
+                    messages: [
+                        { role: 'system', content: system },
+                        { role: 'user', content: prompt }
+                    ],
+                    max_tokens: 300,
+                    temperature: 0.7
+                };
+
+                const response = await this.makeAPIRequest(request);
+                const content = response.choices[0].message.content?.trim() || '';
+                
+                try {
+                    const choices = JSON.parse(content);
+                    if (Array.isArray(choices) && choices.length === 4 && choices.every(c => typeof c.choice === 'string' && typeof c.isCorrect === 'boolean')) {
+                        return choices;
+                    }
+                    return null;
+                } catch (e) {
+                    console.error('Failed to parse word choices JSON:', content);
+                    return null;
+                }
+            };
+
+            let choices = await getChoices();
+            let attempts = retry;
+            while (!choices && attempts > 0) {
+                attempts--;
+                choices = await getChoices();
+            }
+            return choices || [];
+        } catch (error) {
+            console.error('Error generating word choices with definition:', error);
+            if (typeof window !== "undefined" && window.alert) {
+                window.alert('AI error: ' + ((error as Error)?.message || error));
+            }
+            return [];
+        }
+    }
+
+    /**
      * Generate a definition for a word
      * @param word - The word to define
      * @param context - Optional context where the word was found

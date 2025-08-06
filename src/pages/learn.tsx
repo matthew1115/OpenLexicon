@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { autoGetNextWord, updateWordReview } from "../utils/wordbank";
 import { QuizCard } from "../components/learn_cards";
-import { createAIInstance, isAIConfigured } from "../utils/ai_instance";
+import { Spinner } from "../components/ui/spinner";
+import { createAIInstance } from "../utils/ai_instance";
 import type { WordRecord } from "../utils/file";
 import type AIConnect from "../utils/ai_connect";
 
@@ -50,8 +51,16 @@ export default function LearnPage() {
               // AI not configured, fall back to input mode
               setStep({ type: "input_meaning", word });
             } else {
-              const choices = await aiInst.generateWordChoices(word.word);
-              setStep({ type: "multiple", word, choices });
+              // Use wordbank definition if available, otherwise generate with AI
+              if (word.definition && word.definition.trim() !== "") {
+                // Use wordbank definition and generate choices with AI
+                const choices = await aiInst.generateWordChoicesWithDefinition(word.word, word.definition);
+                setStep({ type: "multiple", word, choices });
+              } else {
+                // No definition in wordbank, use AI for both definition and choices
+                const choices = await aiInst.generateWordChoices(word.word);
+                setStep({ type: "multiple", word, choices });
+              }
             }
           } catch {
             setStep({ type: "input_meaning", word });
@@ -70,17 +79,30 @@ export default function LearnPage() {
         await updateWordReview(step.word.word, true);
         window.location.reload();
       } else {
-        const aiInst = getAI(ai);
-        if (!aiInst) {
-          alert('AI not configured. Please set up your API key in settings.');
-          window.location.reload();
-          return;
-        }
         setLoading(true);
-        aiInst.generateDefinition(step.word.word).then((definition) => {
-          setStep({ type: "input_sentence", word: step.word, definition });
-          setLoading(false);
-        });
+        // Use wordbank definition if available, otherwise use AI
+        let definition = step.word.definition;
+        
+        if (!definition || definition.trim() === "") {
+          // No definition in wordbank, use AI
+          const aiInst = getAI(ai);
+          if (!aiInst) {
+            alert('No definition available in wordbank and AI not configured. Please set up your API key in settings or use a wordbank with definitions.');
+            window.location.reload();
+            return;
+          }
+          
+          try {
+            definition = await aiInst.generateDefinition(step.word.word);
+          } catch (error) {
+            alert('Failed to generate definition. Please check your AI configuration.');
+            window.location.reload();
+            return;
+          }
+        }
+        
+        setStep({ type: "input_sentence", word: step.word, definition });
+        setLoading(false);
       }
     }
   };
@@ -125,11 +147,21 @@ export default function LearnPage() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="h-screen flex flex-col items-center justify-center space-y-4">
+        <Spinner size="xl" className="text-primary" />
+        <p className="text-sm text-muted-foreground">Preparing your next word...</p>
+      </div>
+    );
   }
 
   if (!step) {
-    return <div>Loading...</div>;
+    return (
+      <div className="h-screen flex flex-col items-center justify-center space-y-4">
+        <Spinner size="xl" className="text-primary" />
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    );
   }
 
   if (step.type === "done") {
@@ -149,7 +181,7 @@ export default function LearnPage() {
       <div className="h-screen flex items-center justify-center">
         <QuizCard
           type="input"
-          question={`The meaning of "${step.word.word}" is: ${step.definition}. Please write an example sentence using this word.`}
+          question={`The meaning of "${step.word.word}" is: \n\"${step.definition}\".\nWrite an example sentence using this word.`}
           onSubmit={handleInputSentence}
         />
       </div>
