@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { autoGetNextWord, updateWordReview } from "../utils/wordbank";
 import { QuizCard } from "../components/learn_cards";
 import { Spinner } from "../components/ui/spinner";
@@ -6,208 +6,289 @@ import { createAIInstance } from "../utils/ai_instance";
 import type { WordRecord } from "../utils/file";
 import type AIConnect from "../utils/ai_connect";
 
-function getAI(aiRef: React.RefObject<AIConnect | null>) {
-  if (!aiRef.current) {
-    aiRef.current = createAIInstance();
-  }
-  return aiRef.current;
-}
-
-type Step =
+// Quiz step types for different learning modes
+type QuizStep =
   | { type: "judge"; word: WordRecord }
   | { type: "input_sentence"; word: WordRecord; definition: string }
   | { type: "input_meaning"; word: WordRecord }
   | { type: "multiple"; word: WordRecord; choices: { choice: string; isCorrect: boolean }[] }
   | { type: "done" };
 
+// Constants
+const MULTIPLE_CHOICE_PROBABILITY = 0.5;
+
 export default function LearnPage() {
-  const [step, setStep] = useState<Step | null>(null);
-  const [loading, setLoading] = useState(true);
-  const ai = useRef<AIConnect | null>(null);
+  const [currentStep, setCurrentStep] = useState<QuizStep | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const aiInstance = useRef<AIConnect | null>(null);
+
+  // Initialize or get AI instance
+  const getAIInstance = (): AIConnect | null => {
+    if (!aiInstance.current) {
+      aiInstance.current = createAIInstance();
+    }
+    return aiInstance.current;
+  };
+
+  // Navigate to next word (reload page)
+  const moveToNextWord = () => {
+    window.location.reload();
+  };
+
+  // Show error and reload
+  const handleError = (message: string) => {
+    alert(message);
+    moveToNextWord();
+  };
+
+  // Generate quiz step for a new word (first time seeing it)
+  const createJudgeStep = (word: WordRecord): QuizStep => ({
+    type: "judge",
+    word
+  });
+
+  // Generate quiz step for a known word
+  const createKnownWordStep = async (word: WordRecord): Promise<QuizStep> => {
+    const shouldUseMultipleChoice = Math.random() < MULTIPLE_CHOICE_PROBABILITY;
+    
+    if (!shouldUseMultipleChoice) {
+      return { type: "input_meaning", word };
+    }
+
+    // Try to create multiple choice with AI
+    const ai = getAIInstance();
+    if (!ai) {
+      return { type: "input_meaning", word };
+    }
+
+    try {
+      let choices;
+      if (word.definition?.trim()) {
+        choices = await ai.generateWordChoicesWithDefinition(word.word, word.definition);
+      } else {
+        choices = await ai.generateWordChoices(word.word);
+      }
+      return { type: "multiple", word, choices };
+    } catch (error) {
+      console.error("Failed to generate multiple choice:", error);
+      return { type: "input_meaning", word };
+    }
+  };
+
+  // Generate definition for a word
+  const generateDefinition = async (word: string): Promise<string> => {
+    const ai = getAIInstance();
+    if (!ai) {
+      throw new Error("AI not configured");
+    }
+    return await ai.generateDefinition(word);
+  };
+
+  // Initialize the learning session
+  const initializeLearningSession = async () => {
+    setIsLoading(true);
+    
+    try {
+      const word = await autoGetNextWord();
+      
+      if (!word) {
+        setCurrentStep({ type: "done" });
+        return;
+      }
+
+      if (word.shown_times === 0) {
+        setCurrentStep(createJudgeStep(word));
+      } else {
+        const step = await createKnownWordStep(word);
+        setCurrentStep(step);
+      }
+    } catch (error) {
+      console.error("Failed to initialize learning session:", error);
+      handleError("Failed to load word. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function prepare() {
-      setLoading(true);
-      const word = await autoGetNextWord();
-      if (!word) {
-        setStep({ type: "done" });
-        setLoading(false);
-        return;
-      }
-      if (word.shown_times === 0) {
-        setStep({ type: "judge", word });
-        setLoading(false);
-      } else {
-        // Randomly choose input or multiple choice
-        const rand = Math.random();
-        if (rand < 0.5) {
-          setStep({ type: "input_meaning", word });
-          setLoading(false);
-        } else {
-          setLoading(true);
-          try {
-            const aiInst = getAI(ai);
-            if (!aiInst) {
-              // AI not configured, fall back to input mode
-              setStep({ type: "input_meaning", word });
-            } else {
-              // Use wordbank definition if available, otherwise generate with AI
-              if (word.definition && word.definition.trim() !== "") {
-                // Use wordbank definition and generate choices with AI
-                const choices = await aiInst.generateWordChoicesWithDefinition(word.word, word.definition);
-                setStep({ type: "multiple", word, choices });
-              } else {
-                // No definition in wordbank, use AI for both definition and choices
-                const choices = await aiInst.generateWordChoices(word.word);
-                setStep({ type: "multiple", word, choices });
-              }
-            }
-          } catch {
-            setStep({ type: "input_meaning", word });
-          }
-          setLoading(false);
-        }
-      }
-    }
-    prepare();
+    initializeLearningSession();
   }, []);
 
-  // Handler for judge card
-  const handleJudge = async (result: boolean) => {
-    if (step && step.type === "judge") {
-      if (result) {
-        await updateWordReview(step.word.word, true);
-        window.location.reload();
-      } else {
-        setLoading(true);
-        // Use wordbank definition if available, otherwise use AI
-        let definition = step.word.definition;
+  // Event handlers for different quiz types
+  
+  // Handle judge card response (Yes/No for word recognition)
+  const handleJudgeResponse = async (knowsWord: boolean) => {
+    if (!currentStep || currentStep.type !== "judge") return;
+
+    if (knowsWord) {
+      await updateWordReview(currentStep.word.word, true);
+      moveToNextWord();
+    } else {
+      setIsLoading(true);
+      
+      try {
+        // Get definition from wordbank or generate with AI
+        let definition = currentStep.word.definition;
         
-        if (!definition || definition.trim() === "") {
-          // No definition in wordbank, use AI
-          const aiInst = getAI(ai);
-          if (!aiInst) {
-            alert('No definition available in wordbank and AI not configured. Please set up your API key in settings or use a wordbank with definitions.');
-            window.location.reload();
-            return;
-          }
-          
-          try {
-            definition = await aiInst.generateDefinition(step.word.word);
-          } catch (error) {
-            alert('Failed to generate definition. Please check your AI configuration.');
-            window.location.reload();
-            return;
-          }
+        if (!definition?.trim()) {
+          const generatedDefinition = await generateDefinition(currentStep.word.word);
+          definition = generatedDefinition;
         }
         
-        setStep({ type: "input_sentence", word: step.word, definition });
-        setLoading(false);
-      }
-    }
-  };
-
-  // Handler for input card (example sentence)
-  const handleInputSentence = async (sentence: string) => {
-    if (step && step.type === "input_sentence") {
-      const aiInst = getAI(ai);
-      if (!aiInst) {
-        alert('AI not configured. Please set up your API key in settings.');
-        window.location.reload();
+        setCurrentStep({ 
+          type: "input_sentence", 
+          word: currentStep.word, 
+          definition 
+        });
+      } catch (error) {
+        console.error("Failed to get definition:", error);
+        handleError("Failed to generate definition. Please check your AI configuration.");
         return;
+      } finally {
+        setIsLoading(false);
       }
-      setLoading(true);
-      const ok = await aiInst.checkExample(step.word.word, sentence);
-      await updateWordReview(step.word.word, ok);
-      setLoading(false);
-      window.location.reload();
     }
   };
 
-  // Handler for input card (meaning)
-  const handleInputMeaning = async (meaning: string) => {
-    if (
-      step &&
-      (step.type === "input_meaning" || step.type === "input_sentence")
-    ) {
-      const correct =
-        meaning.trim().toLowerCase() === step.word.definition.trim().toLowerCase();
-      await updateWordReview(step.word.word, correct);
-      window.location.reload();
+  // Handle sentence input submission
+  const handleSentenceInput = async (sentence: string) => {
+    if (!currentStep || currentStep.type !== "input_sentence") return;
+
+    const ai = getAIInstance();
+    if (!ai) {
+      handleError("AI not configured. Please set up your API key in settings.");
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const isCorrect = await ai.checkExample(currentStep.word.word, sentence);
+      await updateWordReview(currentStep.word.word, isCorrect);
+      moveToNextWord();
+    } catch (error) {
+      console.error("Failed to check sentence:", error);
+      handleError("Failed to check sentence. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Handler for multiple choice
-  const handleMultiple = async (option: string) => {
-    if (step && step.type === "multiple") {
-      const correct = step.choices.find((c) => c.choice === option)?.isCorrect;
-      await updateWordReview(step.word.word, !!correct);
-      window.location.reload();
+  // Handle meaning input submission
+  const handleMeaningInput = async (userMeaning: string) => {
+    if (!currentStep || 
+        (currentStep.type !== "input_meaning" && currentStep.type !== "input_sentence")) {
+      return;
+    }
+
+    const correctDefinition = currentStep.word.definition?.trim().toLowerCase() || "";
+    const userDefinition = userMeaning.trim().toLowerCase();
+    const isCorrect = userDefinition === correctDefinition;
+    
+    await updateWordReview(currentStep.word.word, isCorrect);
+    moveToNextWord();
+  };
+
+  // Handle multiple choice selection
+  const handleMultipleChoice = async (selectedOption: string) => {
+    if (!currentStep || currentStep.type !== "multiple") return;
+
+    const selectedChoice = currentStep.choices.find(choice => choice.choice === selectedOption);
+    const isCorrect = selectedChoice?.isCorrect || false;
+    
+    await updateWordReview(currentStep.word.word, isCorrect);
+    moveToNextWord();
+  };
+
+  // Render loading state
+  const renderLoadingState = () => (
+    <div className="h-screen flex flex-col items-center justify-center space-y-4">
+      <Spinner size="xl" className="text-primary" />
+      <p className="text-sm text-muted-foreground">Preparing your next word...</p>
+    </div>
+  );
+
+  // Render completion state
+  const renderCompletionState = () => (
+    <div className="h-screen flex flex-col items-center justify-center space-y-4">
+      <h2 className="text-2xl font-semibold">All caught up!</h2>
+      <p className="text-muted-foreground">
+        No words to review. Please add more words or select a new wordbank.
+      </p>
+    </div>
+  );
+
+  // Render quiz card based on current step
+  const renderQuizCard = () => {
+    if (!currentStep) return null;
+
+    const cardProps = {
+      className: "h-screen flex items-center justify-center"
+    };
+
+    switch (currentStep.type) {
+      case "judge":
+        return (
+          <div {...cardProps}>
+            <QuizCard
+              type="judge"
+              question={`Do you know the word "${currentStep.word.word}"?`}
+              onJudge={handleJudgeResponse}
+            />
+          </div>
+        );
+
+      case "input_sentence":
+        return (
+          <div {...cardProps}>
+            <QuizCard
+              type="input"
+              question={`The meaning of "${currentStep.word.word}" is:\n"${currentStep.definition}"\n\nWrite an example sentence using this word.`}
+              onSubmit={handleSentenceInput}
+            />
+          </div>
+        );
+
+      case "input_meaning":
+        return (
+          <div {...cardProps}>
+            <QuizCard
+              type="input"
+              question={`What is the meaning of "${currentStep.word.word}"?`}
+              onSubmit={handleMeaningInput}
+            />
+          </div>
+        );
+
+      case "multiple":
+        return (
+          <div {...cardProps}>
+            <QuizCard
+              type="multiple"
+              question={`What is the meaning of "${currentStep.word.word}"?`}
+              options={currentStep.choices.map(choice => choice.choice)}
+              onSelect={handleMultipleChoice}
+            />
+          </div>
+        );
+
+      default:
+        return null;
     }
   };
 
-  if (loading) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center space-y-4">
-        <Spinner size="xl" className="text-primary" />
-        <p className="text-sm text-muted-foreground">Preparing your next word...</p>
-      </div>
-    );
+  // Main render logic
+  if (isLoading) {
+    return renderLoadingState();
   }
 
-  if (!step) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center space-y-4">
-        <Spinner size="xl" className="text-primary" />
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
-    );
+  if (!currentStep) {
+    return renderLoadingState();
   }
 
-  if (step.type === "done") {
-    return <div>No words to review. Please add more words or select a new wordbank.</div>;
-  } else if (step.type === "judge") {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <QuizCard
-          type="judge"
-          question={`Do you know the word "${step.word.word}"?`}
-          onJudge={handleJudge}
-        />
-      </div>
-    );
-  } else if (step.type === "input_sentence") {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <QuizCard
-          type="input"
-          question={`The meaning of "${step.word.word}" is: \n\"${step.definition}\".\nWrite an example sentence using this word.`}
-          onSubmit={handleInputSentence}
-        />
-      </div>
-    );
-  } else if (step.type === "input_meaning") {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <QuizCard
-          type="input"
-          question={`What is the meaning of "${step.word.word}"?`}
-          onSubmit={handleInputMeaning}
-        />
-      </div>
-    );
-  } else if (step.type === "multiple") {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <QuizCard
-          type="multiple"
-          question={`What is the meaning of "${step.word.word}"?`}
-          options={step.choices.map((c: { choice: string; isCorrect: boolean }) => c.choice)}
-          onSelect={handleMultiple}
-        />
-      </div>
-    );
+  if (currentStep.type === "done") {
+    return renderCompletionState();
   }
 
-  return null;
+  return renderQuizCard();
 }
