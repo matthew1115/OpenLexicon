@@ -12,12 +12,16 @@ type JudgeCardProps = {
 };
 export function JudgeCard({ question, onJudge }: JudgeCardProps) {
   return (
-    <Card>
-      <div style={{ marginBottom: 16 }}>{question}</div>
-      <Button onClick={() => onJudge(true)} style={{ marginRight: 8 }}>
-        Yes
-      </Button>
-      <Button onClick={() => onJudge(false)}>No</Button>
+    <Card className="w-full max-w-md mx-auto px-6">
+      <div className="mb-6 text-lg font-medium text-center">{question}</div>
+      <div className="flex gap-4 justify-center">
+        <Button onClick={() => onJudge(true)} className="flex-1 max-w-[45%]">
+          Yes
+        </Button>
+        <Button onClick={() => onJudge(false)} className="flex-1 max-w-[45%]">
+          No
+        </Button>
+      </div>
     </Card>
   );
 }
@@ -34,17 +38,20 @@ export function MultipleChoiceCard({
   onSelect,
 }: MultipleChoiceCardProps) {
   return (
-    <Card>
-      <div style={{ marginBottom: 16 }}>{question}</div>
-      {options.map((opt) => (
-        <Button
-          key={opt}
-          onClick={() => onSelect(opt)}
-          style={{ display: "block", marginBottom: 8, width: "100%" }}
-        >
-          {opt}
-        </Button>
-      ))}
+    <Card className="w-full max-w-lg mx-auto px-6">
+      <div className="mb-6 text-lg font-medium text-center">{question}</div>
+      <div className="space-y-3">
+        {options.map((opt) => (
+          <Button
+            key={opt}
+            onClick={() => onSelect(opt)}
+            variant="outline"
+            className="w-full px-6 py-4 h-auto text-left justify-start"
+          >
+            {opt}
+          </Button>
+        ))}
+      </div>
     </Card>
   );
 }
@@ -57,23 +64,28 @@ type InputCardProps = {
 export function InputCard({ question, onSubmit }: InputCardProps) {
   const [value, setValue] = React.useState("");
   return (
-    <Card>
-      <div style={{ marginBottom: 16 }}>{question}</div>
-      <Input
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="Type your answer"
-        style={{ marginBottom: 8 }}
-      />
-      <Button onClick={() => onSubmit(value)} disabled={!value}>
-        Submit
-      </Button>
+    <Card className="w-full max-w-md mx-auto px-6">
+      <div className="mb-6 text-lg font-medium text-center">{question}</div>
+      <div className="space-y-4">
+        <Input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Type your answer"
+          className="px-4 py-3"
+        />
+        <Button 
+          onClick={() => onSubmit(value)} 
+          disabled={!value}
+          className="w-full px-6"
+        >
+          Submit
+        </Button>
+      </div>
     </Card>
   );
 }
 
 // QuizCard: Wrapper to render the correct card type
-type QuizType = "judge" | "multiple" | "input";
 type QuizCardProps =
   | ({ type: "judge"; question: string; onJudge: (result: boolean) => void })
   | ({

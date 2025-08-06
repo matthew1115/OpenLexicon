@@ -135,7 +135,7 @@ export default function LearnPage() {
   if (step.type === "done") {
     return <div>No words to review. Please add more words or select a new wordbank.</div>;
   } else if (step.type === "judge") {
-return (
+    return (
       <div className="h-screen flex items-center justify-center">
         <QuizCard
           type="judge"
@@ -145,7 +145,7 @@ return (
       </div>
     );
   } else if (step.type === "input_sentence") {
-return (
+    return (
       <div className="h-screen flex items-center justify-center">
         <QuizCard
           type="input"
@@ -155,7 +155,7 @@ return (
       </div>
     );
   } else if (step.type === "input_meaning") {
-return (
+    return (
       <div className="h-screen flex items-center justify-center">
         <QuizCard
           type="input"
@@ -165,7 +165,7 @@ return (
       </div>
     );
   } else if (step.type === "multiple") {
-return (
+    return (
       <div className="h-screen flex items-center justify-center">
         <QuizCard
           type="multiple"
